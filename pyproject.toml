@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "igbot"
+version = "0.1.0"
+description = "Content sourcing & repackaging tool for landscaping IG accounts"
+requires-python = ">=3.11"
+dependencies = [
+    "praw>=7.7",
+    "yt-dlp>=2024.1",
+    "Pillow>=10.0",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+ui = ["fastapi>=0.110", "uvicorn>=0.29"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+igbot = "igbot.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

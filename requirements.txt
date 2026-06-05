@@ -1,0 +1,14 @@
+# Core
+praw>=7.7            # Reddit OAuth API
+yt-dlp>=2024.1       # video download + audio muxing (Reddit v.redd.it fix)
+Pillow>=10.0         # image -> JPEG conversion
+requests>=2.31       # Meta Graph API
+
+# Review UI (later milestone)
+fastapi>=0.110
+uvicorn>=0.29
+
+# Dev
+pytest>=8.0
+
+# Requires system `ffmpeg` + `ffprobe` on PATH (not a pip package).

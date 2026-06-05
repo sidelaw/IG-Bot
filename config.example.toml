@@ -1,0 +1,30 @@
+# Copy to config.toml and edit. config.toml is gitignored.
+# SECRETS DO NOT GO HERE — they come from environment variables (see .env.example).
+
+[general]
+mode = "review"            # "review" (default) | "blind"
+max_posts_per_run = 20
+
+[paths]
+work_dir = "./work"        # downloaded + normalized media (gitignored)
+db_path = "./igbot.db"     # SQLite state/dedup/queue/routing/tokens (gitignored)
+
+[reddit]
+# Public, non-secret. Credentials (client id/secret) come from env.
+user_agent = "igbot/0.1 (by u/your_reddit_username)"
+
+# One block per source feed. Each feed lists its target IG account ids.
+[[feeds]]
+source = "reddit"
+name = "landscaping-week"
+subreddits = ["landscaping", "lawncare"]
+time_window = "week"       # hour | day | week | month | year | all
+min_score = 100
+media_types = ["video", "image"]
+target_accounts = ["acct_main"]
+
+# Target Instagram accounts (non-secret metadata only; tokens via env / DB).
+[[accounts]]
+id = "acct_main"
+username = "your_landscaping_account"
+auth_flow = "instagram_login"   # instagram_login | facebook_login

@@ -1,0 +1,31 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.toml
+config.toml
+
+# State / media (holds tokens + downloaded third-party media)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+work/
+media/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
