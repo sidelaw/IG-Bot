@@ -26,8 +26,11 @@ staged="$(git diff --cached -U0 2>/dev/null)"
 # Also consider files newly added on this command line (best effort).
 [ -z "$staged" ] && exit 0
 
-# Refuse obviously-sensitive staged filenames.
-bad_files="$(git diff --cached --name-only 2>/dev/null | grep -Ei '(^|/)(\.env($|\.)|.*\.pem$|.*\.key$|secrets\.toml$|config\.toml$|.*credentials.*)' || true)"
+# Refuse obviously-sensitive staged filenames. Template files (*.example) are
+# safe placeholders and are explicitly allowed (e.g. .env.example).
+bad_files="$(git diff --cached --name-only 2>/dev/null \
+  | grep -Ev '\.example$' \
+  | grep -Ei '(^|/)(\.env($|\.)|.*\.pem$|.*\.key$|secrets\.toml$|config\.toml$|.*credentials.*)' || true)"
 if [ -n "$bad_files" ]; then
   echo "BLOCKED: refusing to commit sensitive file(s):" >&2
   echo "$bad_files" >&2

@@ -50,6 +50,51 @@ def test_candidate_and_routing(tmp_path):
     s.close()
 
 
+def test_review_edits(tmp_path):
+    s = Store(tmp_path / "t.db")
+    s.upsert_account("acct_main", "main")
+    s.upsert_account("acct_two", "two")
+    cid = s.add_candidate(_candidate())
+
+    s.update_caption(cid, "Edited caption")
+    s.set_brand_overlay(cid, True)
+    assert s.get_candidate(cid)["caption"] == "Edited caption"
+    assert s.get_candidate(cid)["brand_overlay"] == 1
+
+    # set_routing replaces the whole set
+    s.set_routing(cid, ["acct_two"])
+    assert s.routing_for(cid) == ["acct_two"]
+    s.set_routing(cid, [])
+    assert s.routing_for(cid) == []
+
+    s.set_status(cid, "approved")
+    assert [r["id"] for r in s.list_candidates("approved")] == [cid]
+    assert s.list_candidates("pending") == []
+    s.close()
+
+
+def test_set_routing_atomic_on_bad_account(tmp_path):
+    """A bad account id must roll back the whole set_routing, leaving the
+    existing routing intact — not half-cleared."""
+    import sqlite3
+
+    import pytest
+
+    s = Store(tmp_path / "t.db")
+    s.upsert_account("acct_main", "main")
+    c = _candidate()
+    c.target_accounts = []                 # avoid add_candidate routing to acct_two
+    cid = s.add_candidate(c)
+    s.set_routing(cid, ["acct_main"])
+    assert s.routing_for(cid) == ["acct_main"]
+
+    with pytest.raises(sqlite3.IntegrityError):
+        s.set_routing(cid, ["acct_main", "ghost"])   # ghost violates FK
+    # rolled back: previous routing preserved, not wiped
+    assert s.routing_for(cid) == ["acct_main"]
+    s.close()
+
+
 def test_routing_requires_known_account(tmp_path):
     """Routing to an unsynced account should fail loudly (FK), not silently."""
     import sqlite3

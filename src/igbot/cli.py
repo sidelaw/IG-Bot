@@ -29,6 +29,27 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_publish(args: argparse.Namespace) -> int:
+    from .publish.runner import publish_candidate
+
+    cfg = config_mod.load(args.config)
+    media_id = publish_candidate(cfg, args.candidate, args.account)
+    print(f"Published candidate {args.candidate} to {args.account} -> media {media_id}")
+    return 0
+
+
+def cmd_review(args: argparse.Namespace) -> int:
+    import uvicorn
+
+    from .web import create_app
+
+    cfg = config_mod.load(args.config)
+    app = create_app(cfg)
+    print(f"Review queue on http://{args.host}:{args.port}  (mode: {cfg.mode})")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    return 0
+
+
 def cmd_probe(args: argparse.Namespace) -> int:
     """Download a single URL and report whether audio survived (audio-fix demo)."""
     info = download_and_normalize(
@@ -53,6 +74,18 @@ def main(argv: list[str] | None = None) -> int:
     p_fetch.add_argument("--limit", type=int, default=None)
     p_fetch.set_defaults(func=cmd_fetch)
 
+    p_pub = sub.add_parser("publish", help="publish a queued candidate to an account")
+    p_pub.add_argument("candidate", type=int, help="candidate id")
+    p_pub.add_argument("--account", required=True, help="target account id")
+    p_pub.add_argument("--config", default="config.toml")
+    p_pub.set_defaults(func=cmd_publish)
+
+    p_rev = sub.add_parser("review", help="serve the FastAPI review queue")
+    p_rev.add_argument("--config", default="config.toml")
+    p_rev.add_argument("--host", default="127.0.0.1")
+    p_rev.add_argument("--port", type=int, default=8000)
+    p_rev.set_defaults(func=cmd_review)
+
     p_probe = sub.add_parser("probe", help="download one URL and report audio status")
     p_probe.add_argument("url")
     p_probe.add_argument("--type", choices=["video", "image"], default="video")
@@ -62,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return args.func(args)
-    except (FileNotFoundError, RuntimeError) as exc:
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

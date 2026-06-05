@@ -61,9 +61,16 @@ routing/tokens) · `fastapi` (review UI, later milestone). Config in TOML
 
 ## Build order (status)
 
-1. ✅ Reddit fetch + yt-dlp/ffmpeg download with audio working — **current**
-2. ☐ SQLite store + dedup (schema landed; wired into fetch)
-3. ☐ Public media host + IG publish to one account (single happy path)
-4. ☐ Review queue: caption edit, brand overlay, account routing
-5. ☐ Add second source (X)
-6. ☐ TikTok module (optional, isolated, off by default)
+1. ✅ Reddit fetch + yt-dlp/ffmpeg download with audio working
+2. ✅ SQLite store + dedup (schema landed; wired into fetch)
+3. ✅ Public media host (S3/R2) + IG publish to one account (single happy
+   path) — code-complete & unit-tested; not yet live-verified (needs creds)
+4. ✅ Review queue (FastAPI): caption edit, brand overlay, account routing,
+   approve → publish — `igbot review`
+5. ✅ Add second source (X) — API v2 recent search; pay-per-use, unit-tested
+6. ✅ TikTok module — isolated, OFF by default (yt-dlp scraping; breaks ToS &
+   is fragile). Failures are walled off from the other sources.
+
+All milestones built & unit-tested. Live-verification gaps remain where they
+require real credentials / outbound network: a live v.redd.it fetch, a live X
+search (paid API), and a live IG publish (tokens + Meta app review).

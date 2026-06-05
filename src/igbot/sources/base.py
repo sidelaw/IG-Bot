@@ -8,6 +8,10 @@ from ..config import Feed
 from ..models import Candidate
 
 
+class SourceDisabled(RuntimeError):
+    """Raised when a configured source is turned off (e.g. TikTok by default)."""
+
+
 class Source(Protocol):
     name: str
 

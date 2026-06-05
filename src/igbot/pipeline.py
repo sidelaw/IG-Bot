@@ -1,13 +1,20 @@
-"""Milestone 1 pipeline: fetch -> dedup -> download+normalize -> enqueue."""
+"""Fetch pipeline: fetch -> dedup -> download+normalize -> enqueue.
+
+Each source is isolated: a flaky one (TikTok scraping is expected to break)
+logs a warning and is skipped without taking down the other feeds.
+"""
 
 from __future__ import annotations
 
 import logging
 
-from .config import Config
+from .config import Config, Feed
 from .db import Store
 from .media import download_and_normalize
+from .sources.base import SourceDisabled
 from .sources.reddit import RedditSource
+from .sources.tiktok import TikTokSource
+from .sources.x import XSource
 
 log = logging.getLogger("igbot.pipeline")
 
@@ -18,54 +25,100 @@ def run_fetch(config: Config, limit: int | None = None) -> list[int]:
     max_posts = limit if limit is not None else config.max_posts_per_run
     enqueued: list[int] = []
 
-    sources = {"reddit": RedditSource}
+    # Built per call so the classes resolve via module globals (test-patchable).
+    SOURCES = {"reddit": RedditSource, "x": XSource, "tiktok": TikTokSource}
 
     # Sync configured accounts so routing FKs resolve.
+    known_accounts = {acct.id for acct in config.accounts}
     for acct in config.accounts:
         store.upsert_account(acct.id, acct.username, acct.auth_flow)
 
     try:
         for feed in config.feeds:
-            src_cls = sources.get(feed.source)
+            src_cls = SOURCES.get(feed.source)
             if src_cls is None:
                 log.warning("skipping feed %s: source %r not implemented",
                             feed.name, feed.source)
                 continue
-            source = src_cls(config)
+            try:
+                source = src_cls(config)
+            except SourceDisabled as exc:
+                log.info("feed %s skipped: %s", feed.name, exc)
+                continue
+            except Exception as exc:  # isolate flaky source init (e.g. tiktok)
+                log.warning("feed %s: source init failed (isolated): %s",
+                            feed.name, exc)
+                continue
+
             log.info("feed %s (%s): fetching", feed.name, feed.source)
-
-            for cand in source.fetch(feed):
-                if len(enqueued) >= max_posts:
-                    log.info("hit max_posts_per_run=%d", max_posts)
-                    return enqueued
-                if store.is_seen(cand.source, cand.source_post_id):
-                    continue
-                store.mark_seen(cand.source, cand.source_post_id)
-                try:
-                    info = download_and_normalize(
-                        cand.source_url, cand.media_type,
-                        config.work_dir, cand.source_post_id,
-                    )
-                except Exception as exc:  # one bad post shouldn't kill the run
-                    log.warning("download failed for %s: %s",
-                                cand.source_post_id, exc)
-                    continue
-
-                cand.local_path = info.path
-                cand.duration = info.duration
-                cand.width = info.width
-                cand.height = info.height
-                cand.has_audio = info.has_audio
-                cand.reels_eligible = info.reels_eligible
-
-                cand_id = store.add_candidate(cand)
-                enqueued.append(cand_id)
-                log.info(
-                    "queued #%d %s by u/%s | %s%s | audio=%s reels=%s",
-                    cand_id, cand.source_post_id, cand.author, cand.media_type,
-                    f" {cand.duration:.0f}s" if cand.duration else "",
-                    cand.has_audio, cand.reels_eligible,
-                )
+            if len(enqueued) >= max_posts:
+                log.info("hit max_posts_per_run=%d", max_posts)
+                break
+            # Isolate the whole fetch loop: a source that breaks mid-stream must
+            # not take down other feeds. _process_feed appends to `enqueued` as
+            # it goes, so ids already queued survive a later mid-stream failure
+            # and still count toward the global cap.
+            try:
+                _process_feed(config, store, feed, source,
+                              known_accounts, enqueued, max_posts)
+            except Exception as exc:
+                log.warning("feed %s: fetch error (source isolated): %s",
+                            feed.name, exc)
+                continue
     finally:
         store.close()
     return enqueued
+
+
+def _process_feed(
+    config: Config,
+    store: Store,
+    feed: Feed,
+    source,
+    known_accounts: set[str],
+    enqueued: list[int],
+    max_posts: int,
+) -> None:
+    """Download + enqueue candidates from one feed, appending ids to ``enqueued``
+    as they are committed (so a mid-stream source failure doesn't lose them)."""
+    for cand in source.fetch(feed):
+        if len(enqueued) >= max_posts:
+            break
+        if store.is_seen(cand.source, cand.source_post_id):
+            continue
+
+        # Drop routing to accounts that aren't configured, so a typo'd
+        # target_account can't trip a routing FK and abort the run.
+        unknown = [a for a in cand.target_accounts if a not in known_accounts]
+        if unknown:
+            log.warning("feed %s: unknown target account(s) %s — skipping "
+                        "those routes", feed.name, unknown)
+        cand.target_accounts = [a for a in cand.target_accounts
+                                if a in known_accounts]
+
+        try:
+            info = download_and_normalize(
+                cand.source_url, cand.media_type,
+                config.work_dir, cand.source_post_id,
+            )
+            cand.local_path = info.path
+            cand.duration = info.duration
+            cand.width = info.width
+            cand.height = info.height
+            cand.has_audio = info.has_audio
+            cand.reels_eligible = info.reels_eligible
+            cand_id = store.add_candidate(cand)
+        except Exception as exc:  # one bad post shouldn't kill the feed
+            log.warning("skipping %s: %s", cand.source_post_id, exc)
+            continue
+
+        # Mark seen only after a successful enqueue, so a transient download
+        # failure doesn't permanently bury a recoverable post.
+        store.mark_seen(cand.source, cand.source_post_id)
+        enqueued.append(cand_id)
+        log.info(
+            "queued #%d %s by %s | %s%s | audio=%s reels=%s",
+            cand_id, cand.source_post_id, cand.author or "?", cand.media_type,
+            f" {cand.duration:.0f}s" if cand.duration else "",
+            cand.has_audio, cand.reels_eligible,
+        )

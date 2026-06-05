@@ -19,12 +19,74 @@ source = "reddit"
 name = "landscaping-week"
 subreddits = ["landscaping", "lawncare"]
 time_window = "week"       # hour | day | week | month | year | all
-min_score = 100
+min_score = 100            # reddit post score
 media_types = ["video", "image"]
 target_accounts = ["acct_main"]
+
+# X (Twitter) feed. min_score = likes + retweets. Recent search covers the last
+# 7 days. Each run is billed per post read — keep queries tight.
+[[feeds]]
+source = "x"
+name = "landscaping-x"
+queries = ["landscaping before after", "lawn transformation"]
+min_score = 500
+media_types = ["video", "image"]
+target_accounts = ["acct_main"]
+
+# X API settings (non-secret). Bearer token comes from env (X_BEARER_TOKEN).
+[x]
+api_base = "https://api.x.com/2"
+query_suffix = "has:media -is:retweet -is:reply"
+max_results = 50           # 10..100 per search request
+
+# TikTok — OPTIONAL, ISOLATED, OFF BY DEFAULT. There is no sanctioned API to
+# download others' TikToks; this relies on yt-dlp scraping, which breaks
+# TikTok's ToS and breaks whenever they change their site. Failures here are
+# isolated and won't affect Reddit/X. Opt in at your own risk.
+[tiktok]
+enabled = false
+max_per_tag = 30
+
+# Example TikTok feed (only runs if [tiktok] enabled = true above). Tags are
+# hashtags, or "@username" for a user feed. min_score = view count.
+# [[feeds]]
+# source = "tiktok"
+# name = "landscaping-tiktok"
+# tags = ["landscaping", "@somelandscaper"]
+# min_score = 50000
+# media_types = ["video"]
+# target_accounts = ["acct_main"]
 
 # Target Instagram accounts (non-secret metadata only; tokens via env / DB).
 [[accounts]]
 id = "acct_main"
 username = "your_landscaping_account"
 auth_flow = "instagram_login"   # instagram_login | facebook_login
+
+# Public media host. Instagram fetches media by cURLing a public URL, so files
+# are uploaded here first. S3-compatible: AWS S3 or Cloudflare R2 (set
+# endpoint_url for R2). Access keys come from env, never here.
+[host]
+provider = "s3"
+bucket = "your-igbot-media-bucket"
+region = "auto"                  # "auto" for Cloudflare R2; e.g. "us-east-1" for S3
+endpoint_url = ""                # R2: https://<account>.r2.cloudflarestorage.com
+public_base_url = "https://media.example.com"   # CDN/public domain serving the bucket
+key_prefix = "igbot"
+
+# Instagram API. Host + version are volatile (Meta ships quarterly) — kept here,
+# not hardcoded. Instagram Login flow uses graph.instagram.com. Rate limits are
+# NOT configured: they're queried at runtime via content_publishing_limit.
+[instagram]
+graph_host = "graph.instagram.com"
+api_version = "v23.0"           # verify current version against Meta docs
+
+# Brand overlay (the "material edit" transform for reach). Applied at publish
+# time only when a candidate has the overlay toggled on in the review queue.
+[brand]
+text = "@your_landscaping_account"
+logo_path = ""                  # optional PNG/JPEG logo to composite
+position = "bottom-right"        # bottom-right|bottom-left|top-right|top-left|bottom-center
+font_size = 48
+margin = 36
+opacity = 0.85

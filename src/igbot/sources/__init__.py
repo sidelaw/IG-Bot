@@ -1,3 +1,3 @@
-from .base import Source
+from .base import Source, SourceDisabled
 
-__all__ = ["Source"]
+__all__ = ["Source", "SourceDisabled"]

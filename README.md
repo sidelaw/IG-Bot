@@ -16,10 +16,10 @@ Built milestone by milestone (see `CLAUDE.md` for the full order).
 |---|-----------|-------|
 | 1 | Reddit fetch + yt-dlp/ffmpeg download with **audio working** | ✅ done |
 | 2 | SQLite store + dedup | ✅ schema + store landed, wired into fetch |
-| 3 | Public media host + IG publish (single happy path) | ☐ next |
-| 4 | Review queue: caption edit, brand overlay, account routing | ☐ |
-| 5 | Add second source (X) | ☐ |
-| 6 | TikTok module (optional, isolated) | ☐ |
+| 3 | Public media host (S3/R2) + IG publish (single happy path) | ✅ code-complete, unit-tested (not live-verified) |
+| 4 | Review queue (FastAPI): caption, brand overlay, routing, publish | ✅ done |
+| 5 | Add second source (X / Twitter) | ✅ code-complete, unit-tested (needs paid API to run) |
+| 6 | TikTok module (optional, isolated, off by default) | ✅ done |
 
 ## The audio fix (milestone 1)
 
@@ -35,6 +35,9 @@ front (`+faststart`), images convert to JPEG, and Reels eligibility (5–90 s,
 credentials, which the build sandbox doesn't have.
 
 ## Setup
+
+**New here? See [SETUP.md](SETUP.md)** for a plain-English, step-by-step
+first-time guide (R2 bucket, Meta app review, filling in the config).
 
 ```bash
 pip install -e .            # or: pip install -r requirements.txt
@@ -55,7 +58,46 @@ python -m igbot fetch --limit 10
 
 # Prove the audio fix on a single URL (downloads + reports audio status)
 python -m igbot probe "https://www.reddit.com/r/<sub>/comments/<id>/"
+
+# Publish a queued candidate to one account (uploads to the host, then IG)
+python -m igbot publish <candidate_id> --account acct_main
+
+# Review queue (the operator gate): edit caption, toggle brand overlay,
+# route to accounts, approve, and publish — http://127.0.0.1:8000
+python -m igbot review
 ```
+
+## Review queue (milestone 4)
+
+`igbot review` serves a one-page FastAPI app. Each pending candidate shows a
+preview, source + author attribution, score, and Reels/audio badges, with an
+editable caption, a **brand-overlay** toggle, and account-routing checkboxes
+("which post → which account"). Buttons: Save, Approve, Reject, Publish.
+Nothing publishes without passing through here (unless blind mode is added).
+
+When a candidate's brand overlay is on, publishing first burns the configured
+`[brand]` text/logo onto the media (ffmpeg for video — audio preserved,
+`+faststart`; Pillow for images → JPEG) — the "material edit" the brief ties to
+reach. It does **not** address copyright.
+
+## Publishing (milestone 3)
+
+`publish` uploads the normalized file to the configured S3/R2 host (Instagram
+needs a public URL), then runs the 3-step Graph dance on `graph.instagram.com`:
+create container → poll `?fields=status_code` until `FINISHED` → `media_publish`.
+
+- **Rate limits are queried, never hardcoded** — `content_publishing_limit` is
+  read before each publish and the run is refused if the quota is exhausted.
+  `X-App-Usage` / `X-Business-Use-Case-Usage` headers are parsed on every
+  response and the client backs off as usage climbs.
+- **Reels vs feed video** — a Reels-eligible video (5–90 s, 9:16) publishes as a
+  Reel (`media_type=REELS`); anything else still publishes, as a feed video, and
+  the runner logs a warning rather than failing silently.
+- Per-account secrets come from env: `IGBOT_TOKEN_<ID>` + `IGBOT_IGID_<ID>`;
+  host keys via `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
+
+> Code-complete and unit-tested against a fake transport; a live publish needs
+> real credentials + app review (publishing to accounts you don't own).
 
 ## Verified terms & risks (eyes open)
 
@@ -68,9 +110,15 @@ python -m igbot probe "https://www.reddit.com/r/<sub>/comments/<id>/"
   product needs written approval + a paid contract, and since 2025 even personal
   apps need pre-approval. Redistribution may breach the Developer Terms.
 - **X** — pay-per-use since Feb 2026 (~$0.005/post read). Reading is sanctioned;
-  redistribution carries its own terms.
-- **TikTok** — no official download path; scraping breaks ToS. Kept walled off,
-  off by default.
+  redistribution carries its own terms. Source uses API v2 recent search
+  (`tweet.fields=public_metrics` for scoring, `media.fields=variants` for the
+  mp4 URL — video `media.url` is null, the file lives in `variants`). Each run
+  is billed per post read, so keep queries tight. Needs `X_BEARER_TOKEN`.
+- **TikTok** — no official download path; only yt-dlp scraping, which breaks
+  ToS and breaks whenever TikTok changes its site. **Off by default**
+  (`[tiktok] enabled = false`); raises `SourceDisabled` until you opt in. The
+  pipeline isolates each source, so a broken TikTok scrape logs a warning and
+  is skipped without taking down the Reddit/X feeds.
 
 ## Instagram publishing (chosen flow)
 
@@ -90,8 +138,12 @@ src/igbot/
   pipeline.py          milestone-1 fetch pipeline
   cli.py               `python -m igbot`
   db/                  SQLite schema + store (dedup, queue, routing, tokens)
-  sources/             reddit.py (+ base Source protocol)
-  media/               downloader.py (the audio fix + normalize)
-tests/                 downloader + store tests
+  sources/             reddit.py, x.py, tiktok.py (+ base Source protocol)
+  media/               downloader.py (audio fix + normalize), host.py (S3/R2),
+                       overlay.py (brand overlay)
+  publish/             instagram.py (Graph publish), runner.py (orchestration)
+  web/                 app.py (FastAPI review queue)
+tests/                 downloader, store, instagram, publish-runner, overlay,
+                       pipeline, web, x, tiktok tests (44)
 .claude/hooks/         block-secrets.sh (commit guard)
 ```
