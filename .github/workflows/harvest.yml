@@ -22,8 +22,7 @@ jobs:
       - run: python -m igbot harvest
         env:
           # Reddit uses the public RSS feed — no Reddit secrets needed.
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
-          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+          # Bucket/endpoint/public-url live in config.toml (not secret).
+          # Only the R2 access keys are secrets; accept either naming.
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID || secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY || secrets.R2_SECRET_ACCESS_KEY }}

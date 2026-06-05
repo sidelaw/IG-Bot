@@ -41,13 +41,14 @@ def publish_local_file(
         raise PublishError(f"file not found: {path}")
 
     token = Config.ig_token(account_id)
-    ig_user_id = os.environ.get(f"IGBOT_IGID_{account_id.upper()}", "")
+    ig_user_id = config.ig_user_id(account_id)
     if not token:
         raise PublishError(
             f"no token. Set IGBOT_TOKEN_{account_id.upper()} (your IG token).")
     if not ig_user_id:
         raise PublishError(
-            f"no IG user id. Set IGBOT_IGID_{account_id.upper()} (your IG account id).")
+            f"no IG user id. Set it in config.toml (ig_user_id) or "
+            f"IGBOT_IGID_{account_id.upper()}.")
 
     ext = path.suffix.lower()
     out_dir = Path(config.work_dir) / "normalized"
@@ -96,11 +97,11 @@ def publish_candidate(config: Config, candidate_id: int, account_id: str) -> str
         raise PublishError(
             f"no token for {account_id}. Set IGBOT_TOKEN_{account_id.upper()} in env."
         )
-    ig_user_id = os.environ.get(f"IGBOT_IGID_{account_id.upper()}", "")
+    ig_user_id = config.ig_user_id(account_id)
     if not ig_user_id:
         raise PublishError(
-            f"no IG user id for {account_id}. "
-            f"Set IGBOT_IGID_{account_id.upper()} in env."
+            f"no IG user id for {account_id}. Set it in config.toml (ig_user_id) "
+            f"or IGBOT_IGID_{account_id.upper()}."
         )
 
     store = Store(config.db_path)

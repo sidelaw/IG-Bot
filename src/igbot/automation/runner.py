@@ -112,7 +112,7 @@ def post_next(config: Config, host=None, publisher_factory=None) -> str | None:
     entry = queue[0]
     account_id = entry["account_id"]
     token = Config.ig_token(account_id)
-    ig_user_id = os.environ.get(f"IGBOT_IGID_{account_id.upper()}", "")
+    ig_user_id = config.ig_user_id(account_id)
     if not token or not ig_user_id:
         # Misconfigured account would block the queue forever — drop and move on.
         log.error("no credentials for account %s (set IGBOT_TOKEN_%s / "
