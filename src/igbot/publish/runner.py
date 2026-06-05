@@ -58,11 +58,17 @@ def publish_candidate(config: Config, candidate_id: int, account_id: str) -> str
         # Apply the brand overlay (material-edit transform) if the operator
         # enabled it for this candidate and a brand is configured.
         local_media = row["local_path"]
-        if row["brand_overlay"] and has_overlay(config.brand):
-            local_media = str(
-                apply_overlay(local_media, media_type, config.brand, config.work_dir)
-            )
-            log.info("applied brand overlay to candidate %d", candidate_id)
+        if row["brand_overlay"]:
+            if has_overlay(config.brand):
+                local_media = str(apply_overlay(
+                    local_media, media_type, config.brand, config.work_dir))
+                log.info("applied brand overlay to candidate %d", candidate_id)
+            else:
+                # Toggle is on but [brand] has no text/logo — the operator asked
+                # for a material edit they won't get. Surface it, don't bury it.
+                log.warning("candidate %d has brand_overlay on but [brand] has no "
+                            "text or logo configured — publishing WITHOUT an edit",
+                            candidate_id)
 
         host = build_host(config.host)
         public_url = host.upload(local_media)

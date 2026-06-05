@@ -147,18 +147,19 @@ class Store:
         return [r["account_id"] for r in rows]
 
     def set_routing(self, candidate_id: int, account_ids: list[str]) -> None:
-        """Replace this candidate's routing set. Accounts must already exist
-        (FK enforced) — validate against list_accounts() at the call site."""
-        self.conn.execute(
-            "DELETE FROM routing WHERE candidate_id = ?", (candidate_id,)
-        )
-        for acct in account_ids:
+        """Replace this candidate's routing set, atomically. Accounts must exist
+        (FK enforced); a bad id rolls the whole change back rather than leaving
+        routing half-cleared. Validate against list_accounts() at the call site."""
+        with self.conn:  # commits on success, rolls back on any exception
             self.conn.execute(
-                "INSERT OR IGNORE INTO routing (candidate_id, account_id) "
-                "VALUES (?, ?)",
-                (candidate_id, acct),
+                "DELETE FROM routing WHERE candidate_id = ?", (candidate_id,)
             )
-        self.conn.commit()
+            for acct in account_ids:
+                self.conn.execute(
+                    "INSERT OR IGNORE INTO routing (candidate_id, account_id) "
+                    "VALUES (?, ?)",
+                    (candidate_id, acct),
+                )
 
     def set_status(self, candidate_id: int, status: str) -> None:
         self.conn.execute(

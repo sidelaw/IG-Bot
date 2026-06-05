@@ -48,7 +48,8 @@ class XSource:
         for query in feed.queries:
             payload = self._search(query)
             media_by_key = {m["media_key"]: m
-                            for m in payload.get("includes", {}).get("media", [])}
+                            for m in payload.get("includes", {}).get("media", [])
+                            if m.get("media_key")}
             users = {u["id"]: u
                      for u in payload.get("includes", {}).get("users", [])}
             for tweet in payload.get("data", []):

@@ -51,16 +51,16 @@ def run_fetch(config: Config, limit: int | None = None) -> list[int]:
                 continue
 
             log.info("feed %s (%s): fetching", feed.name, feed.source)
+            if len(enqueued) >= max_posts:
+                log.info("hit max_posts_per_run=%d", max_posts)
+                break
             # Isolate the whole fetch loop: a source that breaks mid-stream must
-            # not take down other feeds. Stop early once we hit the run cap.
+            # not take down other feeds. _process_feed appends to `enqueued` as
+            # it goes, so ids already queued survive a later mid-stream failure
+            # and still count toward the global cap.
             try:
-                remaining = max_posts - len(enqueued)
-                if remaining <= 0:
-                    log.info("hit max_posts_per_run=%d", max_posts)
-                    break
-                enqueued += _process_feed(
-                    config, store, feed, source, known_accounts, remaining
-                )
+                _process_feed(config, store, feed, source,
+                              known_accounts, enqueued, max_posts)
             except Exception as exc:
                 log.warning("feed %s: fetch error (source isolated): %s",
                             feed.name, exc)
@@ -76,12 +76,13 @@ def _process_feed(
     feed: Feed,
     source,
     known_accounts: set[str],
-    remaining: int,
-) -> list[int]:
-    """Download + enqueue up to ``remaining`` candidates from one feed."""
-    out: list[int] = []
+    enqueued: list[int],
+    max_posts: int,
+) -> None:
+    """Download + enqueue candidates from one feed, appending ids to ``enqueued``
+    as they are committed (so a mid-stream source failure doesn't lose them)."""
     for cand in source.fetch(feed):
-        if len(out) >= remaining:
+        if len(enqueued) >= max_posts:
             break
         if store.is_seen(cand.source, cand.source_post_id):
             continue
@@ -114,11 +115,10 @@ def _process_feed(
         # Mark seen only after a successful enqueue, so a transient download
         # failure doesn't permanently bury a recoverable post.
         store.mark_seen(cand.source, cand.source_post_id)
-        out.append(cand_id)
+        enqueued.append(cand_id)
         log.info(
             "queued #%d %s by %s | %s%s | audio=%s reels=%s",
             cand_id, cand.source_post_id, cand.author or "?", cand.media_type,
             f" {cand.duration:.0f}s" if cand.duration else "",
             cand.has_audio, cand.reels_eligible,
         )
-    return out

@@ -36,6 +36,9 @@ credentials, which the build sandbox doesn't have.
 
 ## Setup
 
+**New here? See [SETUP.md](SETUP.md)** for a plain-English, step-by-step
+first-time guide (R2 bucket, Meta app review, filling in the config).
+
 ```bash
 pip install -e .            # or: pip install -r requirements.txt
 # system ffmpeg + ffprobe must be on PATH (not a pip package)

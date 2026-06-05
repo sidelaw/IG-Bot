@@ -30,6 +30,17 @@ def _build(cls: type[_T], data: dict, where: str) -> _T:
             f"unknown key(s) {sorted(unknown)} in [{where}]; "
             f"valid keys: {sorted(allowed)}"
         )
+    # Catch list-vs-scalar mistakes (e.g. subreddits = "x" instead of ["x"])
+    # here, where we can point at the key, rather than letting a string get
+    # iterated character-by-character far downstream.
+    for f in fields(cls):
+        if "list" in str(f.type) and f.name in data and not isinstance(
+            data[f.name], list
+        ):
+            raise ValueError(
+                f"[{where}] key '{f.name}' must be a list (e.g. [\"a\", \"b\"]), "
+                f"got {type(data[f.name]).__name__}"
+            )
     try:
         return cls(**data)
     except TypeError as exc:  # missing required field

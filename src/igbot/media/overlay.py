@@ -35,6 +35,16 @@ def has_overlay(brand: BrandConfig) -> bool:
     return bool(brand.text or brand.logo_path)
 
 
+def _esc_filter(value: str) -> str:
+    """Escape a path for use as an ffmpeg filtergraph option value.
+
+    In a filtergraph ``:`` separates options and ``\\`` / ``'`` are meta, so a
+    work_dir path containing any of them (or being passed unquoted with spaces)
+    would corrupt the graph. Escape backslash first, then ``:`` and ``'``.
+    """
+    return value.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+
+
 # ----- ffmpeg position expressions -----
 
 def _drawtext_xy(position: str, margin: int) -> tuple[str, str]:
@@ -78,9 +88,14 @@ def apply_video_overlay(src: Path, dest: Path, brand: BrandConfig) -> Path:
             raise MediaError(f"logo not found: {brand.logo_path}")
         inputs += ["-i", brand.logo_path]
         lx, ly = _overlay_xy(brand.position, brand.margin)
-        # Scale logo to ~1/5 of the video width, preserving aspect.
-        steps.append(f"[1:v]scale=w=iw:h=ih,format=rgba,colorchannelmixer=aa={alpha}[lg]")
-        steps.append(f"{last}[lg]overlay={lx}:{ly}[base]")
+        # Scale the logo to ~1/5 of the *video* width (preserving aspect) via
+        # scale2ref — a plain scale=iw:ih would be a no-op and composite the
+        # logo at full size. scale2ref emits [scaled_logo][video_passthrough].
+        steps.append(
+            f"[1:v]{last}scale2ref=w=main_w/5:h=main_w/5*ih/iw[lg][vid]"
+        )
+        steps.append(f"[lg]format=rgba,colorchannelmixer=aa={alpha}[lga]")
+        steps.append(f"[vid][lga]overlay={lx}:{ly}[base]")
         last = "[base]"
 
     if brand.text:
@@ -93,8 +108,12 @@ def apply_video_overlay(src: Path, dest: Path, brand: BrandConfig) -> Path:
         import os
         os.close(fd)
         tx, ty = _drawtext_xy(brand.position, brand.margin)
+        # Escape the file paths for the filtergraph: ':' separates options,
+        # '\' and "'" are meta. (brand.text itself is read from textfile, so it
+        # needs no escaping here.)
         steps.append(
-            f"{last}drawtext=textfile='{tmp_text}':fontfile='{font}':"
+            f"{last}drawtext=textfile={_esc_filter(str(tmp_text))}:"
+            f"fontfile={_esc_filter(font)}:"
             f"fontsize={brand.font_size}:fontcolor=white@{alpha}:"
             f"borderw=3:bordercolor=black@{alpha}:x={tx}:y={ty}[v]"
         )

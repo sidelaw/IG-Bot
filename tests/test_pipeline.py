@@ -77,6 +77,30 @@ def test_unknown_target_account_does_not_crash(tmp_path, monkeypatch):
     store.close()
 
 
+def test_midstream_source_failure_keeps_enqueued(tmp_path, monkeypatch):
+    """A source that yields some candidates then blows up must keep the ones
+    already queued (in the DB and in the returned list)."""
+    feed = Feed(source="reddit", name="f", target_accounts=["acct_main"])
+    cfg = _config(tmp_path, feed)
+
+    class _Flaky:
+        name = "reddit"
+        def __init__(self, c): pass
+        def fetch(self, feed):
+            yield _cand(["acct_main"])             # gets queued
+            raise RuntimeError("API blew up mid-stream")
+
+    monkeypatch.setattr(pipeline, "RedditSource", _Flaky)
+    monkeypatch.setattr(pipeline, "download_and_normalize",
+                        lambda *a, **k: _video_info(tmp_path))
+
+    ids = pipeline.run_fetch(cfg)
+    assert len(ids) == 1                            # the pre-failure id survives
+    store = Store(cfg.db_path)
+    assert store.is_seen("reddit", "p1") is True
+    store.close()
+
+
 def test_failed_download_not_marked_seen(tmp_path, monkeypatch):
     feed = Feed(source="reddit", name="f", target_accounts=["acct_main"])
     cfg = _config(tmp_path, feed)

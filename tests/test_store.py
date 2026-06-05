@@ -73,6 +73,28 @@ def test_review_edits(tmp_path):
     s.close()
 
 
+def test_set_routing_atomic_on_bad_account(tmp_path):
+    """A bad account id must roll back the whole set_routing, leaving the
+    existing routing intact — not half-cleared."""
+    import sqlite3
+
+    import pytest
+
+    s = Store(tmp_path / "t.db")
+    s.upsert_account("acct_main", "main")
+    c = _candidate()
+    c.target_accounts = []                 # avoid add_candidate routing to acct_two
+    cid = s.add_candidate(c)
+    s.set_routing(cid, ["acct_main"])
+    assert s.routing_for(cid) == ["acct_main"]
+
+    with pytest.raises(sqlite3.IntegrityError):
+        s.set_routing(cid, ["acct_main", "ghost"])   # ghost violates FK
+    # rolled back: previous routing preserved, not wiped
+    assert s.routing_for(cid) == ["acct_main"]
+    s.close()
+
+
 def test_routing_requires_known_account(tmp_path):
     """Routing to an unsynced account should fail loudly (FK), not silently."""
     import sqlite3

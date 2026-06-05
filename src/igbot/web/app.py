@@ -46,7 +46,13 @@ def create_app(config: Config) -> FastAPI:
             s.close()
         if not row or not row["local_path"] or not Path(row["local_path"]).exists():
             return HTMLResponse("media not found", status_code=404)
-        return FileResponse(row["local_path"])
+        # Confine served files to work_dir — this endpoint must not become an
+        # arbitrary local-file read, even though local_path comes from our DB.
+        path = Path(row["local_path"]).resolve()
+        work = config.work_dir.resolve()
+        if work not in path.parents:
+            return HTMLResponse("media outside work_dir", status_code=403)
+        return FileResponse(path)
 
     # ---------------- actions ----------------
 
