@@ -67,5 +67,5 @@ routing/tokens) · `fastapi` (review UI, later milestone). Config in TOML
    path) — code-complete & unit-tested; not yet live-verified (needs creds)
 4. ✅ Review queue (FastAPI): caption edit, brand overlay, account routing,
    approve → publish — `igbot review`
-5. ☐ Add second source (X) — **next**
-6. ☐ TikTok module (optional, isolated, off by default)
+5. ✅ Add second source (X) — API v2 recent search; pay-per-use, unit-tested
+6. ☐ TikTok module (optional, isolated, off by default) — **next**

@@ -19,9 +19,25 @@ source = "reddit"
 name = "landscaping-week"
 subreddits = ["landscaping", "lawncare"]
 time_window = "week"       # hour | day | week | month | year | all
-min_score = 100
+min_score = 100            # reddit post score
 media_types = ["video", "image"]
 target_accounts = ["acct_main"]
+
+# X (Twitter) feed. min_score = likes + retweets. Recent search covers the last
+# 7 days. Each run is billed per post read — keep queries tight.
+[[feeds]]
+source = "x"
+name = "landscaping-x"
+queries = ["landscaping before after", "lawn transformation"]
+min_score = 500
+media_types = ["video", "image"]
+target_accounts = ["acct_main"]
+
+# X API settings (non-secret). Bearer token comes from env (X_BEARER_TOKEN).
+[x]
+api_base = "https://api.x.com/2"
+query_suffix = "has:media -is:retweet -is:reply"
+max_results = 50           # 10..100 per search request
 
 # Target Instagram accounts (non-secret metadata only; tokens via env / DB).
 [[accounts]]

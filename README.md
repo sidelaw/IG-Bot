@@ -18,8 +18,8 @@ Built milestone by milestone (see `CLAUDE.md` for the full order).
 | 2 | SQLite store + dedup | ✅ schema + store landed, wired into fetch |
 | 3 | Public media host (S3/R2) + IG publish (single happy path) | ✅ code-complete, unit-tested (not live-verified) |
 | 4 | Review queue (FastAPI): caption, brand overlay, routing, publish | ✅ done |
-| 5 | Add second source (X) | ☐ next |
-| 6 | TikTok module (optional, isolated) | ☐ |
+| 5 | Add second source (X / Twitter) | ✅ code-complete, unit-tested (needs paid API to run) |
+| 6 | TikTok module (optional, isolated) | ☐ next |
 
 ## The audio fix (milestone 1)
 
@@ -107,7 +107,10 @@ create container → poll `?fields=status_code` until `FINISHED` → `media_publ
   product needs written approval + a paid contract, and since 2025 even personal
   apps need pre-approval. Redistribution may breach the Developer Terms.
 - **X** — pay-per-use since Feb 2026 (~$0.005/post read). Reading is sanctioned;
-  redistribution carries its own terms.
+  redistribution carries its own terms. Source uses API v2 recent search
+  (`tweet.fields=public_metrics` for scoring, `media.fields=variants` for the
+  mp4 URL — video `media.url` is null, the file lives in `variants`). Each run
+  is billed per post read, so keep queries tight. Needs `X_BEARER_TOKEN`.
 - **TikTok** — no official download path; scraping breaks ToS. Kept walled off,
   off by default.
 
@@ -129,7 +132,7 @@ src/igbot/
   pipeline.py          milestone-1 fetch pipeline
   cli.py               `python -m igbot`
   db/                  SQLite schema + store (dedup, queue, routing, tokens)
-  sources/             reddit.py (+ base Source protocol)
+  sources/             reddit.py, x.py (+ base Source protocol)
   media/               downloader.py (audio fix + normalize), host.py (S3/R2),
                        overlay.py (brand overlay)
   publish/             instagram.py (Graph publish), runner.py (orchestration)

@@ -12,6 +12,7 @@ from igbot.config import (
     Config,
     HostConfig,
     InstagramConfig,
+    XConfig,
 )
 from igbot.db import Store
 from igbot.models import Candidate
@@ -25,7 +26,7 @@ def _config(tmp_path) -> Config:
         reddit_user_agent="ua",
         feeds=[], accounts=[Account(id="acct_main", username="m")],
         host=HostConfig(bucket="b", public_base_url="https://cdn"),
-        instagram=InstagramConfig(), brand=BrandConfig(),
+        instagram=InstagramConfig(), brand=BrandConfig(), x=XConfig(),
     )
 
 

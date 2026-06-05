@@ -40,9 +40,10 @@ def _build(cls: type[_T], data: dict, where: str) -> _T:
 class Feed:
     source: str
     name: str
-    subreddits: list[str] = field(default_factory=list)
+    subreddits: list[str] = field(default_factory=list)   # reddit feeds
+    queries: list[str] = field(default_factory=list)       # x feeds (search queries)
     time_window: str = "week"
-    min_score: int = 0
+    min_score: int = 0          # reddit: post score; x: likes + retweets
     media_types: list[str] = field(default_factory=lambda: ["video", "image"])
     target_accounts: list[str] = field(default_factory=list)
 
@@ -74,6 +75,16 @@ class InstagramConfig:
 
 
 @dataclass
+class XConfig:
+    # X (Twitter) API v2. Pay-per-use since Feb 2026 (~$0.005/post read) — each
+    # search run costs money. App-only Bearer auth; recent search = last 7 days.
+    api_base: str = "https://api.x.com/2"
+    # Appended to every feed query; ensures media-bearing originals only.
+    query_suffix: str = "has:media -is:retweet -is:reply"
+    max_results: int = 50       # 10..100 per search request
+
+
+@dataclass
 class BrandConfig:
     """Brand overlay (the 'material edit' transform for reach). Applied at
     publish time when a candidate has brand_overlay enabled."""
@@ -97,6 +108,7 @@ class Config:
     host: HostConfig
     instagram: InstagramConfig
     brand: BrandConfig
+    x: XConfig
 
     def account(self, account_id: str) -> Account | None:
         return next((a for a in self.accounts if a.id == account_id), None)
@@ -118,6 +130,10 @@ class Config:
         key = f"IGBOT_TOKEN_{account_id.upper()}"
         return os.environ.get(key, "")
 
+    @staticmethod
+    def x_bearer_token() -> str:
+        return os.environ.get("X_BEARER_TOKEN", "")
+
 
 def load(path: str | Path = "config.toml") -> Config:
     path = Path(path)
@@ -138,6 +154,7 @@ def load(path: str | Path = "config.toml") -> Config:
     host = _build(HostConfig, raw.get("host", {}), "host")
     instagram = _build(InstagramConfig, raw.get("instagram", {}), "instagram")
     brand = _build(BrandConfig, raw.get("brand", {}), "brand")
+    x = _build(XConfig, raw.get("x", {}), "x")
 
     return Config(
         mode=general.get("mode", "review"),
@@ -150,4 +167,5 @@ def load(path: str | Path = "config.toml") -> Config:
         host=host,
         instagram=instagram,
         brand=brand,
+        x=x,
     )

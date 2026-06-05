@@ -8,6 +8,7 @@ from .config import Config
 from .db import Store
 from .media import download_and_normalize
 from .sources.reddit import RedditSource
+from .sources.x import XSource
 
 log = logging.getLogger("igbot.pipeline")
 
@@ -18,7 +19,7 @@ def run_fetch(config: Config, limit: int | None = None) -> list[int]:
     max_posts = limit if limit is not None else config.max_posts_per_run
     enqueued: list[int] = []
 
-    sources = {"reddit": RedditSource}
+    sources = {"reddit": RedditSource, "x": XSource}
 
     # Sync configured accounts so routing FKs resolve.
     known_accounts = {acct.id for acct in config.accounts}
