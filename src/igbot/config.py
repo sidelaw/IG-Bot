@@ -42,8 +42,9 @@ class Feed:
     name: str
     subreddits: list[str] = field(default_factory=list)   # reddit feeds
     queries: list[str] = field(default_factory=list)       # x feeds (search queries)
+    tags: list[str] = field(default_factory=list)          # tiktok feeds (#tags or @users)
     time_window: str = "week"
-    min_score: int = 0          # reddit: post score; x: likes + retweets
+    min_score: int = 0          # reddit: post score; x: likes+rt; tiktok: views
     media_types: list[str] = field(default_factory=lambda: ["video", "image"])
     target_accounts: list[str] = field(default_factory=list)
 
@@ -85,6 +86,15 @@ class XConfig:
 
 
 @dataclass
+class TikTokConfig:
+    # OFF BY DEFAULT. There is no sanctioned API to download others' TikToks —
+    # only yt-dlp scraping, which breaks TikTok's ToS and breaks whenever they
+    # change their site. Isolated so its failures can't affect other sources.
+    enabled: bool = False
+    max_per_tag: int = 30
+
+
+@dataclass
 class BrandConfig:
     """Brand overlay (the 'material edit' transform for reach). Applied at
     publish time when a candidate has brand_overlay enabled."""
@@ -109,6 +119,7 @@ class Config:
     instagram: InstagramConfig
     brand: BrandConfig
     x: XConfig
+    tiktok: TikTokConfig
 
     def account(self, account_id: str) -> Account | None:
         return next((a for a in self.accounts if a.id == account_id), None)
@@ -155,6 +166,7 @@ def load(path: str | Path = "config.toml") -> Config:
     instagram = _build(InstagramConfig, raw.get("instagram", {}), "instagram")
     brand = _build(BrandConfig, raw.get("brand", {}), "brand")
     x = _build(XConfig, raw.get("x", {}), "x")
+    tiktok = _build(TikTokConfig, raw.get("tiktok", {}), "tiktok")
 
     return Config(
         mode=general.get("mode", "review"),
@@ -168,4 +180,5 @@ def load(path: str | Path = "config.toml") -> Config:
         instagram=instagram,
         brand=brand,
         x=x,
+        tiktok=tiktok,
     )

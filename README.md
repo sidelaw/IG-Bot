@@ -19,7 +19,7 @@ Built milestone by milestone (see `CLAUDE.md` for the full order).
 | 3 | Public media host (S3/R2) + IG publish (single happy path) | ✅ code-complete, unit-tested (not live-verified) |
 | 4 | Review queue (FastAPI): caption, brand overlay, routing, publish | ✅ done |
 | 5 | Add second source (X / Twitter) | ✅ code-complete, unit-tested (needs paid API to run) |
-| 6 | TikTok module (optional, isolated) | ☐ next |
+| 6 | TikTok module (optional, isolated, off by default) | ✅ done |
 
 ## The audio fix (milestone 1)
 
@@ -111,8 +111,11 @@ create container → poll `?fields=status_code` until `FINISHED` → `media_publ
   (`tweet.fields=public_metrics` for scoring, `media.fields=variants` for the
   mp4 URL — video `media.url` is null, the file lives in `variants`). Each run
   is billed per post read, so keep queries tight. Needs `X_BEARER_TOKEN`.
-- **TikTok** — no official download path; scraping breaks ToS. Kept walled off,
-  off by default.
+- **TikTok** — no official download path; only yt-dlp scraping, which breaks
+  ToS and breaks whenever TikTok changes its site. **Off by default**
+  (`[tiktok] enabled = false`); raises `SourceDisabled` until you opt in. The
+  pipeline isolates each source, so a broken TikTok scrape logs a warning and
+  is skipped without taking down the Reddit/X feeds.
 
 ## Instagram publishing (chosen flow)
 
@@ -132,12 +135,12 @@ src/igbot/
   pipeline.py          milestone-1 fetch pipeline
   cli.py               `python -m igbot`
   db/                  SQLite schema + store (dedup, queue, routing, tokens)
-  sources/             reddit.py, x.py (+ base Source protocol)
+  sources/             reddit.py, x.py, tiktok.py (+ base Source protocol)
   media/               downloader.py (audio fix + normalize), host.py (S3/R2),
                        overlay.py (brand overlay)
   publish/             instagram.py (Graph publish), runner.py (orchestration)
   web/                 app.py (FastAPI review queue)
 tests/                 downloader, store, instagram, publish-runner, overlay,
-                       pipeline, web tests (32)
+                       pipeline, web, x, tiktok tests (44)
 .claude/hooks/         block-secrets.sh (commit guard)
 ```

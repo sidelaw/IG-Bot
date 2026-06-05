@@ -14,6 +14,7 @@ from igbot.config import (
     Config,
     HostConfig,
     InstagramConfig,
+    TikTokConfig,
     XConfig,
 )
 from igbot.db import Store
@@ -29,7 +30,7 @@ def _config(tmp_path) -> Config:
         accounts=[Account(id="acct_main", username="main"),
                   Account(id="acct_two", username="two")],
         host=HostConfig(bucket="b", public_base_url="https://cdn"),
-        instagram=InstagramConfig(), brand=BrandConfig(text="@x"), x=XConfig(),
+        instagram=InstagramConfig(), brand=BrandConfig(text="@x"), x=XConfig(), tiktok=TikTokConfig(),
     )
 
 

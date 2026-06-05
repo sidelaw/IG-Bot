@@ -39,6 +39,24 @@ api_base = "https://api.x.com/2"
 query_suffix = "has:media -is:retweet -is:reply"
 max_results = 50           # 10..100 per search request
 
+# TikTok — OPTIONAL, ISOLATED, OFF BY DEFAULT. There is no sanctioned API to
+# download others' TikToks; this relies on yt-dlp scraping, which breaks
+# TikTok's ToS and breaks whenever they change their site. Failures here are
+# isolated and won't affect Reddit/X. Opt in at your own risk.
+[tiktok]
+enabled = false
+max_per_tag = 30
+
+# Example TikTok feed (only runs if [tiktok] enabled = true above). Tags are
+# hashtags, or "@username" for a user feed. min_score = view count.
+# [[feeds]]
+# source = "tiktok"
+# name = "landscaping-tiktok"
+# tags = ["landscaping", "@somelandscaper"]
+# min_score = 50000
+# media_types = ["video"]
+# target_accounts = ["acct_main"]
+
 # Target Instagram accounts (non-secret metadata only; tokens via env / DB).
 [[accounts]]
 id = "acct_main"
