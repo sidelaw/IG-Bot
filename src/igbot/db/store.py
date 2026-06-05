@@ -111,6 +111,55 @@ class Store:
             "SELECT * FROM candidates WHERE id = ?", (candidate_id,)
         ).fetchone()
 
+    def list_candidates(self, status: str | None = None) -> list[sqlite3.Row]:
+        if status:
+            return self.conn.execute(
+                "SELECT * FROM candidates WHERE status = ? ORDER BY score DESC",
+                (status,),
+            ).fetchall()
+        return self.conn.execute(
+            "SELECT * FROM candidates ORDER BY created_at DESC"
+        ).fetchall()
+
+    # ----- review-queue edits -----
+
+    def update_caption(self, candidate_id: int, caption: str) -> None:
+        self.conn.execute(
+            "UPDATE candidates SET caption = ? WHERE id = ?", (caption, candidate_id)
+        )
+        self.conn.commit()
+
+    def set_brand_overlay(self, candidate_id: int, enabled: bool) -> None:
+        self.conn.execute(
+            "UPDATE candidates SET brand_overlay = ? WHERE id = ?",
+            (int(enabled), candidate_id),
+        )
+        self.conn.commit()
+
+    def list_accounts(self) -> list[sqlite3.Row]:
+        return self.conn.execute("SELECT * FROM accounts ORDER BY id").fetchall()
+
+    def routing_for(self, candidate_id: int) -> list[str]:
+        rows = self.conn.execute(
+            "SELECT account_id FROM routing WHERE candidate_id = ? ORDER BY account_id",
+            (candidate_id,),
+        ).fetchall()
+        return [r["account_id"] for r in rows]
+
+    def set_routing(self, candidate_id: int, account_ids: list[str]) -> None:
+        """Replace this candidate's routing set. Accounts must already exist
+        (FK enforced) — validate against list_accounts() at the call site."""
+        self.conn.execute(
+            "DELETE FROM routing WHERE candidate_id = ?", (candidate_id,)
+        )
+        for acct in account_ids:
+            self.conn.execute(
+                "INSERT OR IGNORE INTO routing (candidate_id, account_id) "
+                "VALUES (?, ?)",
+                (candidate_id, acct),
+            )
+        self.conn.commit()
+
     def set_status(self, candidate_id: int, status: str) -> None:
         self.conn.execute(
             "UPDATE candidates SET status = ? WHERE id = ?", (status, candidate_id)

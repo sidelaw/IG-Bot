@@ -5,7 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from igbot import pipeline
-from igbot.config import Account, Config, HostConfig, InstagramConfig, Feed
+from igbot.config import (
+    Account,
+    BrandConfig,
+    Config,
+    Feed,
+    HostConfig,
+    InstagramConfig,
+)
 from igbot.db import Store
 from igbot.media.downloader import MediaInfo
 from igbot.models import Candidate
@@ -18,7 +25,7 @@ def _config(tmp_path, feed) -> Config:
         reddit_user_agent="ua", feeds=[feed],
         accounts=[Account(id="acct_main", username="m")],
         host=HostConfig(bucket="b", public_base_url="https://cdn"),
-        instagram=InstagramConfig(),
+        instagram=InstagramConfig(), brand=BrandConfig(),
     )
 
 

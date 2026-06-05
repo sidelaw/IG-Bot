@@ -17,8 +17,8 @@ Built milestone by milestone (see `CLAUDE.md` for the full order).
 | 1 | Reddit fetch + yt-dlp/ffmpeg download with **audio working** | ✅ done |
 | 2 | SQLite store + dedup | ✅ schema + store landed, wired into fetch |
 | 3 | Public media host (S3/R2) + IG publish (single happy path) | ✅ code-complete, unit-tested (not live-verified) |
-| 4 | Review queue: caption edit, brand overlay, account routing | ☐ next |
-| 5 | Add second source (X) | ☐ |
+| 4 | Review queue (FastAPI): caption, brand overlay, routing, publish | ✅ done |
+| 5 | Add second source (X) | ☐ next |
 | 6 | TikTok module (optional, isolated) | ☐ |
 
 ## The audio fix (milestone 1)
@@ -58,7 +58,24 @@ python -m igbot probe "https://www.reddit.com/r/<sub>/comments/<id>/"
 
 # Publish a queued candidate to one account (uploads to the host, then IG)
 python -m igbot publish <candidate_id> --account acct_main
+
+# Review queue (the operator gate): edit caption, toggle brand overlay,
+# route to accounts, approve, and publish — http://127.0.0.1:8000
+python -m igbot review
 ```
+
+## Review queue (milestone 4)
+
+`igbot review` serves a one-page FastAPI app. Each pending candidate shows a
+preview, source + author attribution, score, and Reels/audio badges, with an
+editable caption, a **brand-overlay** toggle, and account-routing checkboxes
+("which post → which account"). Buttons: Save, Approve, Reject, Publish.
+Nothing publishes without passing through here (unless blind mode is added).
+
+When a candidate's brand overlay is on, publishing first burns the configured
+`[brand]` text/logo onto the media (ffmpeg for video — audio preserved,
+`+faststart`; Pillow for images → JPEG) — the "material edit" the brief ties to
+reach. It does **not** address copyright.
 
 ## Publishing (milestone 3)
 
@@ -113,8 +130,11 @@ src/igbot/
   cli.py               `python -m igbot`
   db/                  SQLite schema + store (dedup, queue, routing, tokens)
   sources/             reddit.py (+ base Source protocol)
-  media/               downloader.py (audio fix + normalize), host.py (S3/R2)
+  media/               downloader.py (audio fix + normalize), host.py (S3/R2),
+                       overlay.py (brand overlay)
   publish/             instagram.py (Graph publish), runner.py (orchestration)
-tests/                 downloader, store, instagram, publish-runner tests
+  web/                 app.py (FastAPI review queue)
+tests/                 downloader, store, instagram, publish-runner, overlay,
+                       pipeline, web tests (32)
 .claude/hooks/         block-secrets.sh (commit guard)
 ```

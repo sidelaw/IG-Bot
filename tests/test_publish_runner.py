@@ -8,6 +8,7 @@ import pytest
 
 from igbot.config import (
     Account,
+    BrandConfig,
     Config,
     HostConfig,
     InstagramConfig,
@@ -24,7 +25,7 @@ def _config(tmp_path) -> Config:
         reddit_user_agent="ua",
         feeds=[], accounts=[Account(id="acct_main", username="m")],
         host=HostConfig(bucket="b", public_base_url="https://cdn"),
-        instagram=InstagramConfig(),
+        instagram=InstagramConfig(), brand=BrandConfig(),
     )
 
 

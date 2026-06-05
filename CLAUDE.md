@@ -65,6 +65,7 @@ routing/tokens) · `fastapi` (review UI, later milestone). Config in TOML
 2. ✅ SQLite store + dedup (schema landed; wired into fetch)
 3. ✅ Public media host (S3/R2) + IG publish to one account (single happy
    path) — code-complete & unit-tested; not yet live-verified (needs creds)
-4. ☐ Review queue: caption edit, brand overlay, account routing — **next**
-5. ☐ Add second source (X)
+4. ✅ Review queue (FastAPI): caption edit, brand overlay, account routing,
+   approve → publish — `igbot review`
+5. ☐ Add second source (X) — **next**
 6. ☐ TikTok module (optional, isolated, off by default)

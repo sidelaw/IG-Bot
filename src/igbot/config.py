@@ -74,6 +74,18 @@ class InstagramConfig:
 
 
 @dataclass
+class BrandConfig:
+    """Brand overlay (the 'material edit' transform for reach). Applied at
+    publish time when a candidate has brand_overlay enabled."""
+    text: str = ""                # overlay text (e.g. "@youraccount")
+    logo_path: str = ""           # optional PNG/JPEG logo to composite
+    position: str = "bottom-right"  # bottom-right|bottom-left|top-right|top-left|bottom-center
+    font_size: int = 48           # px; scaled to media for video
+    margin: int = 36              # px from the edge
+    opacity: float = 0.85         # 0..1
+
+
+@dataclass
 class Config:
     mode: str
     max_posts_per_run: int
@@ -84,6 +96,7 @@ class Config:
     accounts: list[Account]
     host: HostConfig
     instagram: InstagramConfig
+    brand: BrandConfig
 
     def account(self, account_id: str) -> Account | None:
         return next((a for a in self.accounts if a.id == account_id), None)
@@ -124,6 +137,7 @@ def load(path: str | Path = "config.toml") -> Config:
                 for i, a in enumerate(raw.get("accounts", []))]
     host = _build(HostConfig, raw.get("host", {}), "host")
     instagram = _build(InstagramConfig, raw.get("instagram", {}), "instagram")
+    brand = _build(BrandConfig, raw.get("brand", {}), "brand")
 
     return Config(
         mode=general.get("mode", "review"),
@@ -135,4 +149,5 @@ def load(path: str | Path = "config.toml") -> Config:
         accounts=accounts,
         host=host,
         instagram=instagram,
+        brand=brand,
     )

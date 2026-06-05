@@ -12,6 +12,7 @@ import os
 from ..config import Config
 from ..db import Store
 from ..media.host import build_host
+from ..media.overlay import apply_overlay, has_overlay
 from .instagram import InstagramPublisher, PublishError
 
 log = logging.getLogger("igbot.publish.runner")
@@ -54,8 +55,17 @@ def publish_candidate(config: Config, candidate_id: int, account_id: str) -> str
                 candidate_id, row["duration"], row["width"], row["height"],
             )
 
+        # Apply the brand overlay (material-edit transform) if the operator
+        # enabled it for this candidate and a brand is configured.
+        local_media = row["local_path"]
+        if row["brand_overlay"] and has_overlay(config.brand):
+            local_media = str(
+                apply_overlay(local_media, media_type, config.brand, config.work_dir)
+            )
+            log.info("applied brand overlay to candidate %d", candidate_id)
+
         host = build_host(config.host)
-        public_url = host.upload(row["local_path"])
+        public_url = host.upload(local_media)
         log.info("uploaded candidate %d -> %s", candidate_id, public_url)
 
         publisher = InstagramPublisher(

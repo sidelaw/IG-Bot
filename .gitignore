@@ -7,13 +7,15 @@
 secrets.toml
 config.toml
 
-# State / media (holds tokens + downloaded third-party media)
+# State / media (holds tokens + downloaded third-party media).
+# Anchored to repo root with a leading slash so these do NOT match the source
+# package src/igbot/media/ (an unanchored `media/` matches it at any depth).
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
-work/
-media/
+/work/
+/media/
 
 # Python
 __pycache__/

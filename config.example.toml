@@ -46,3 +46,13 @@ key_prefix = "igbot"
 [instagram]
 graph_host = "graph.instagram.com"
 api_version = "v23.0"           # verify current version against Meta docs
+
+# Brand overlay (the "material edit" transform for reach). Applied at publish
+# time only when a candidate has the overlay toggled on in the review queue.
+[brand]
+text = "@your_landscaping_account"
+logo_path = ""                  # optional PNG/JPEG logo to composite
+position = "bottom-right"        # bottom-right|bottom-left|top-right|top-left|bottom-center
+font_size = 48
+margin = 36
+opacity = 0.85
