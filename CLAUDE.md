@@ -61,9 +61,10 @@ routing/tokens) · `fastapi` (review UI, later milestone). Config in TOML
 
 ## Build order (status)
 
-1. ✅ Reddit fetch + yt-dlp/ffmpeg download with audio working — **current**
-2. ☐ SQLite store + dedup (schema landed; wired into fetch)
-3. ☐ Public media host + IG publish to one account (single happy path)
-4. ☐ Review queue: caption edit, brand overlay, account routing
+1. ✅ Reddit fetch + yt-dlp/ffmpeg download with audio working
+2. ✅ SQLite store + dedup (schema landed; wired into fetch)
+3. ✅ Public media host (S3/R2) + IG publish to one account (single happy
+   path) — code-complete & unit-tested; not yet live-verified (needs creds)
+4. ☐ Review queue: caption edit, brand overlay, account routing — **next**
 5. ☐ Add second source (X)
 6. ☐ TikTok module (optional, isolated, off by default)

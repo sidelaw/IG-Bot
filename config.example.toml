@@ -28,3 +28,21 @@ target_accounts = ["acct_main"]
 id = "acct_main"
 username = "your_landscaping_account"
 auth_flow = "instagram_login"   # instagram_login | facebook_login
+
+# Public media host. Instagram fetches media by cURLing a public URL, so files
+# are uploaded here first. S3-compatible: AWS S3 or Cloudflare R2 (set
+# endpoint_url for R2). Access keys come from env, never here.
+[host]
+provider = "s3"
+bucket = "your-igbot-media-bucket"
+region = "auto"                  # "auto" for Cloudflare R2; e.g. "us-east-1" for S3
+endpoint_url = ""                # R2: https://<account>.r2.cloudflarestorage.com
+public_base_url = "https://media.example.com"   # CDN/public domain serving the bucket
+key_prefix = "igbot"
+
+# Instagram API. Host + version are volatile (Meta ships quarterly) — kept here,
+# not hardcoded. Instagram Login flow uses graph.instagram.com. Rate limits are
+# NOT configured: they're queried at runtime via content_publishing_limit.
+[instagram]
+graph_host = "graph.instagram.com"
+api_version = "v23.0"           # verify current version against Meta docs

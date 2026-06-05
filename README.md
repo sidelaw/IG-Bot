@@ -16,8 +16,8 @@ Built milestone by milestone (see `CLAUDE.md` for the full order).
 |---|-----------|-------|
 | 1 | Reddit fetch + yt-dlp/ffmpeg download with **audio working** | ✅ done |
 | 2 | SQLite store + dedup | ✅ schema + store landed, wired into fetch |
-| 3 | Public media host + IG publish (single happy path) | ☐ next |
-| 4 | Review queue: caption edit, brand overlay, account routing | ☐ |
+| 3 | Public media host (S3/R2) + IG publish (single happy path) | ✅ code-complete, unit-tested (not live-verified) |
+| 4 | Review queue: caption edit, brand overlay, account routing | ☐ next |
 | 5 | Add second source (X) | ☐ |
 | 6 | TikTok module (optional, isolated) | ☐ |
 
@@ -55,7 +55,29 @@ python -m igbot fetch --limit 10
 
 # Prove the audio fix on a single URL (downloads + reports audio status)
 python -m igbot probe "https://www.reddit.com/r/<sub>/comments/<id>/"
+
+# Publish a queued candidate to one account (uploads to the host, then IG)
+python -m igbot publish <candidate_id> --account acct_main
 ```
+
+## Publishing (milestone 3)
+
+`publish` uploads the normalized file to the configured S3/R2 host (Instagram
+needs a public URL), then runs the 3-step Graph dance on `graph.instagram.com`:
+create container → poll `?fields=status_code` until `FINISHED` → `media_publish`.
+
+- **Rate limits are queried, never hardcoded** — `content_publishing_limit` is
+  read before each publish and the run is refused if the quota is exhausted.
+  `X-App-Usage` / `X-Business-Use-Case-Usage` headers are parsed on every
+  response and the client backs off as usage climbs.
+- **Reels vs feed video** — a Reels-eligible video (5–90 s, 9:16) publishes as a
+  Reel (`media_type=REELS`); anything else still publishes, as a feed video, and
+  the runner logs a warning rather than failing silently.
+- Per-account secrets come from env: `IGBOT_TOKEN_<ID>` + `IGBOT_IGID_<ID>`;
+  host keys via `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
+
+> Code-complete and unit-tested against a fake transport; a live publish needs
+> real credentials + app review (publishing to accounts you don't own).
 
 ## Verified terms & risks (eyes open)
 
@@ -91,7 +113,8 @@ src/igbot/
   cli.py               `python -m igbot`
   db/                  SQLite schema + store (dedup, queue, routing, tokens)
   sources/             reddit.py (+ base Source protocol)
-  media/               downloader.py (the audio fix + normalize)
-tests/                 downloader + store tests
+  media/               downloader.py (audio fix + normalize), host.py (S3/R2)
+  publish/             instagram.py (Graph publish), runner.py (orchestration)
+tests/                 downloader, store, instagram, publish-runner tests
 .claude/hooks/         block-secrets.sh (commit guard)
 ```

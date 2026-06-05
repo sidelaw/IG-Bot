@@ -32,6 +32,25 @@ class Account:
 
 
 @dataclass
+class HostConfig:
+    """Public media host (S3-compatible: AWS S3 or Cloudflare R2)."""
+    provider: str = "s3"
+    bucket: str = ""
+    region: str = "auto"
+    endpoint_url: str = ""        # set for R2; empty -> AWS default
+    public_base_url: str = ""     # CDN / public domain that serves the bucket
+    key_prefix: str = "igbot"
+
+
+@dataclass
+class InstagramConfig:
+    # Instagram Login flow uses graph.instagram.com. Version is volatile (Meta
+    # ships quarterly) — keep it here, not hardcoded in code.
+    graph_host: str = "graph.instagram.com"
+    api_version: str = "v23.0"
+
+
+@dataclass
 class Config:
     mode: str
     max_posts_per_run: int
@@ -40,6 +59,11 @@ class Config:
     reddit_user_agent: str
     feeds: list[Feed]
     accounts: list[Account]
+    host: HostConfig
+    instagram: InstagramConfig
+
+    def account(self, account_id: str) -> Account | None:
+        return next((a for a in self.accounts if a.id == account_id), None)
 
     # ----- secrets, pulled from env on demand (never stored in TOML) -----
 
@@ -74,6 +98,8 @@ def load(path: str | Path = "config.toml") -> Config:
 
     feeds = [Feed(**f) for f in raw.get("feeds", [])]
     accounts = [Account(**a) for a in raw.get("accounts", [])]
+    host = HostConfig(**raw.get("host", {}))
+    instagram = InstagramConfig(**raw.get("instagram", {}))
 
     return Config(
         mode=general.get("mode", "review"),
@@ -83,4 +109,6 @@ def load(path: str | Path = "config.toml") -> Config:
         reddit_user_agent=reddit.get("user_agent", "igbot/0.1"),
         feeds=feeds,
         accounts=accounts,
+        host=host,
+        instagram=instagram,
     )

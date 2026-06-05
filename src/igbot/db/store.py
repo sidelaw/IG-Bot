@@ -106,6 +106,30 @@ class Store:
             "SELECT * FROM candidates WHERE status = 'pending' ORDER BY score DESC"
         ).fetchall()
 
+    def get_candidate(self, candidate_id: int) -> sqlite3.Row | None:
+        return self.conn.execute(
+            "SELECT * FROM candidates WHERE id = ?", (candidate_id,)
+        ).fetchone()
+
+    def set_status(self, candidate_id: int, status: str) -> None:
+        self.conn.execute(
+            "UPDATE candidates SET status = ? WHERE id = ?", (status, candidate_id)
+        )
+        self.conn.commit()
+
+    # ----- publish log -----
+
+    def log_publish(
+        self, candidate_id: int, account_id: str, status: str,
+        ig_media_id: str | None = None, detail: str = "",
+    ) -> None:
+        self.conn.execute(
+            "INSERT INTO publish_log (candidate_id, account_id, ig_media_id, "
+            "status, detail) VALUES (?, ?, ?, ?, ?)",
+            (candidate_id, account_id, ig_media_id, status, detail),
+        )
+        self.conn.commit()
+
     def close(self) -> None:
         self.conn.close()
 
