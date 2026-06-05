@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 
 from ..config import Config
 from ..db import Store
@@ -16,6 +17,72 @@ from ..media.overlay import apply_overlay, has_overlay
 from .instagram import InstagramPublisher, PublishError
 
 log = logging.getLogger("igbot.publish.runner")
+
+_VIDEO_EXTS = {".mp4", ".mov", ".m4v", ".webm", ".mkv"}
+_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
+
+
+def publish_local_file(
+    config: Config,
+    file_path: str | Path,
+    account_id: str = "acct_main",
+    caption: str = "",
+    brand_overlay: bool = False,
+) -> str:
+    """Publish a local video/image straight to Instagram (your own footage).
+
+    Skips the fetch/review queue: normalize -> optional brand overlay -> upload
+    to the public host -> IG publish. Returns the IG media id.
+    """
+    from ..media.downloader import _normalize_image, _normalize_video
+
+    path = Path(file_path)
+    if not path.exists():
+        raise PublishError(f"file not found: {path}")
+
+    token = Config.ig_token(account_id)
+    ig_user_id = os.environ.get(f"IGBOT_IGID_{account_id.upper()}", "")
+    if not token:
+        raise PublishError(
+            f"no token. Set IGBOT_TOKEN_{account_id.upper()} (your IG token).")
+    if not ig_user_id:
+        raise PublishError(
+            f"no IG user id. Set IGBOT_IGID_{account_id.upper()} (your IG account id).")
+
+    ext = path.suffix.lower()
+    out_dir = Path(config.work_dir) / "normalized"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if ext in _VIDEO_EXTS:
+        info = _normalize_video(path, out_dir, path.stem)
+        media_type = "video"
+        as_reel = bool(info.reels_eligible)
+        if not as_reel:
+            log.warning("not Reels-eligible (dur=%s %sx%s) — posting as a feed "
+                        "video, not a Reel", info.duration, info.width, info.height)
+    elif ext in _IMAGE_EXTS:
+        info = _normalize_image(path, out_dir, path.stem)
+        media_type, as_reel = "image", True
+    else:
+        raise PublishError(f"unsupported file type: {ext}")
+
+    local_media = str(info.path)
+    if brand_overlay and has_overlay(config.brand):
+        local_media = str(apply_overlay(
+            local_media, media_type, config.brand, config.work_dir))
+        log.info("applied brand overlay")
+
+    host = build_host(config.host)
+    public_url = host.upload(local_media)
+    log.info("uploaded -> %s", public_url)
+
+    publisher = InstagramPublisher(
+        ig_user_id, token,
+        graph_host=config.instagram.graph_host,
+        api_version=config.instagram.api_version,
+    )
+    media_id = publisher.publish(public_url, media_type, caption, as_reel=as_reel)
+    log.info("published to %s as media %s", account_id, media_id)
+    return media_id
 
 
 def publish_candidate(config: Config, candidate_id: int, account_id: str) -> str:
