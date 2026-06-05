@@ -10,52 +10,78 @@ mode = "blind"            # "blind" = auto-post (for the scheduled automation)
 max_posts_per_run = 20
 
 [automation]
-harvest_count = 10        # top N posts to grab per subreddit, once a day
+harvest_count = 2         # top N posts to grab per subreddit, once a day
+                          # (6 subreddits x 2 = ~12/day, matching ~12 posts/day
+                          #  at one every 2 hours). Bump it if you want more.
 brand_overlay = false     # set true to burn your [brand] text onto every post
-caption_suffix = ""       # text added to the end of every caption (e.g. "#lawncare")
+caption_suffix = ""       # text added to the end of every caption (e.g. "#garden")
 
 [paths]
 work_dir = "./work"
 db_path = "./igbot.db"
 
 [reddit]
-user_agent = "igbot/0.1 (by u/your_reddit_username)"
+user_agent = "igbot/0.1 (rss reader)"
 
 # --- WHICH SUBREDDIT GOES TO WHICH INSTAGRAM ACCOUNT --------------------------
-# One [[feeds]] block per subreddit. Set target_accounts to the account id you
-# want it posted to. Add as many blocks as you like.
+# One [[feeds]] block per subreddit. All of these post to your one account
+# (acct_main). To send a subreddit to a different account, change target_accounts.
 
 [[feeds]]
 source = "reddit"
-name = "lawncare-to-main"
-subreddits = ["lawncare"]
+name = "gardening"
+subreddits = ["gardening"]
 target_accounts = ["acct_main"]
 time_window = "day"       # "day" = today's top posts
-min_score = 100
 media_types = ["video", "image"]
 
 [[feeds]]
 source = "reddit"
-name = "gardening-to-two"
-subreddits = ["gardening"]
-target_accounts = ["acct_two"]
+name = "houseplants"
+subreddits = ["houseplants"]
+target_accounts = ["acct_main"]
 time_window = "day"
-min_score = 100
 media_types = ["video", "image"]
 
-# --- YOUR INSTAGRAM ACCOUNTS --------------------------------------------------
-# One [[accounts]] block per account. The `id` must match the secret names:
-# IGBOT_TOKEN_<ID> and IGBOT_IGID_<ID> (uppercased). e.g. id "acct_main" ->
-# secrets IGBOT_TOKEN_ACCT_MAIN and IGBOT_IGID_ACCT_MAIN.
+[[feeds]]
+source = "reddit"
+name = "vegetablegardening"
+subreddits = ["vegetablegardening"]
+target_accounts = ["acct_main"]
+time_window = "day"
+media_types = ["video", "image"]
+
+[[feeds]]
+source = "reddit"
+name = "lawncare"
+subreddits = ["lawncare"]
+target_accounts = ["acct_main"]
+time_window = "day"
+media_types = ["video", "image"]
+
+[[feeds]]
+source = "reddit"
+name = "oddlysatisfying"
+subreddits = ["oddlysatisfying"]
+target_accounts = ["acct_main"]
+time_window = "day"
+media_types = ["video", "image"]
+
+[[feeds]]
+source = "reddit"
+name = "woodworking"
+subreddits = ["woodworking"]
+target_accounts = ["acct_main"]
+time_window = "day"
+media_types = ["video", "image"]
+
+# --- YOUR INSTAGRAM ACCOUNT ---------------------------------------------------
+# The `id` must match the secret names IGBOT_TOKEN_<ID> / IGBOT_IGID_<ID>
+# (uppercased). id "acct_main" -> secrets IGBOT_TOKEN_ACCT_MAIN / IGBOT_IGID_ACCT_MAIN.
 
 [[accounts]]
 id = "acct_main"
-username = "your_first_account"
-auth_flow = "instagram_login"
-
-[[accounts]]
-id = "acct_two"
-username = "your_second_account"
+username = "your_account"
 auth_flow = "instagram_login"
 
 # --- Storage + Instagram API (values come from GitHub Secrets via env) --------
