@@ -5,7 +5,8 @@
 *.pem
 *.key
 secrets.toml
-config.toml
+# config.toml IS committed (subreddit/account routing is not secret; all real
+# secrets come from env). The block-secrets hook still scans its contents.
 
 # State / media (holds tokens + downloaded third-party media).
 # Anchored to repo root with a leading slash so these do NOT match the source

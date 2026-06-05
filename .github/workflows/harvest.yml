@@ -1,0 +1,30 @@
+name: Harvest (daily)
+
+# Once a day: pull the top posts from each configured Reddit feed, download +
+# normalize them, upload to R2, and add them to the queue. Posting is handled
+# separately by post.yml.
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC daily (change to taste; uses UTC)
+  workflow_dispatch: {} # lets you run it by hand from the Actions tab
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: pip install -e ".[host]"
+      - run: python -m igbot harvest
+        env:
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}

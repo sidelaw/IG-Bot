@@ -51,6 +51,29 @@ def cmd_post(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_harvest(args: argparse.Namespace) -> int:
+    """Daily: pull the top posts from each Reddit feed into the queue."""
+    from .automation import harvest
+
+    cfg = config_mod.load(args.config)
+    added = harvest(cfg)
+    print(f"Harvested {len(added)} new post(s) into the queue.")
+    return 0
+
+
+def cmd_post_next(args: argparse.Namespace) -> int:
+    """Every interval: publish the next queued item to its account."""
+    from .automation import post_next
+
+    cfg = config_mod.load(args.config)
+    media_id = post_next(cfg)
+    if media_id:
+        print(f"✅ Posted next queued item -> media {media_id}")
+    else:
+        print("Nothing posted (queue empty or deferred).")
+    return 0
+
+
 def cmd_review(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -100,6 +123,14 @@ def main(argv: list[str] | None = None) -> int:
     p_post.add_argument("--brand", action="store_true", help="burn on the brand overlay")
     p_post.add_argument("--config", default="config.toml")
     p_post.set_defaults(func=cmd_post)
+
+    p_harv = sub.add_parser("harvest", help="[automation] queue the top Reddit posts")
+    p_harv.add_argument("--config", default="config.toml")
+    p_harv.set_defaults(func=cmd_harvest)
+
+    p_next = sub.add_parser("post-next", help="[automation] publish the next queued item")
+    p_next.add_argument("--config", default="config.toml")
+    p_next.set_defaults(func=cmd_post_next)
 
     p_rev = sub.add_parser("review", help="serve the FastAPI review queue")
     p_rev.add_argument("--config", default="config.toml")

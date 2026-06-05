@@ -30,7 +30,7 @@ staged="$(git diff --cached -U0 2>/dev/null)"
 # safe placeholders and are explicitly allowed (e.g. .env.example).
 bad_files="$(git diff --cached --name-only 2>/dev/null \
   | grep -Ev '\.example$' \
-  | grep -Ei '(^|/)(\.env($|\.)|.*\.pem$|.*\.key$|secrets\.toml$|config\.toml$|.*credentials.*)' || true)"
+  | grep -Ei '(^|/)(\.env($|\.)|.*\.pem$|.*\.key$|secrets\.toml$|.*credentials.*)' || true)"
 if [ -n "$bad_files" ]; then
   echo "BLOCKED: refusing to commit sensitive file(s):" >&2
   echo "$bad_files" >&2
