@@ -82,14 +82,18 @@ media_types = ["video", "image"]
 [[accounts]]
 id = "acct_main"
 username = "your_account"
+ig_user_id = "17841472973819361"   # not secret — the IG token is the secret
 auth_flow = "instagram_login"
 
-# --- Storage + Instagram API (values come from GitHub Secrets via env) --------
+# --- Storage (Cloudflare R2). These values are NOT secret, so they live here.
+# Only the two access keys are secrets (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY).
 [host]
 provider = "s3"
 region = "auto"
 key_prefix = "igbot"
-# bucket / endpoint_url / public_base_url come from the R2_* secrets.
+bucket = "crossposter"
+endpoint_url = "https://e80a9d17f87b30588154d4658b72acf7.r2.cloudflarestorage.com"
+public_base_url = "https://pub-67ca118afa67465e90a129b8b568d6fa.r2.dev"
 
 [instagram]
 graph_host = "graph.instagram.com"

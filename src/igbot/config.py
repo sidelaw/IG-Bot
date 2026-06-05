@@ -65,6 +65,7 @@ class Account:
     id: str
     username: str = ""
     auth_flow: str = "instagram_login"
+    ig_user_id: str = ""   # the IG account id (not secret); else from env IGBOT_IGID_<ID>
 
 
 @dataclass
@@ -152,9 +153,18 @@ class Config:
 
     @staticmethod
     def ig_token(account_id: str) -> str:
-        """Per-account IG token from env: IGBOT_TOKEN_<ACCOUNT_ID upper>."""
+        """Per-account IG token (a SECRET) from env: IGBOT_TOKEN_<ACCOUNT_ID>."""
         key = f"IGBOT_TOKEN_{account_id.upper()}"
         return os.environ.get(key, "")
+
+    def ig_user_id(self, account_id: str) -> str:
+        """IG account id — from env IGBOT_IGID_<ID> if set, else config.toml.
+        (Not a secret, so it may live in config.)"""
+        env = os.environ.get(f"IGBOT_IGID_{account_id.upper()}", "")
+        if env:
+            return env
+        acct = self.account(account_id)
+        return acct.ig_user_id if acct else ""
 
     @staticmethod
     def x_bearer_token() -> str:
