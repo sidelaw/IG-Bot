@@ -1,8 +1,7 @@
 # Core
-praw>=7.7            # Reddit OAuth API
 yt-dlp>=2024.1       # video download + audio muxing (Reddit v.redd.it fix)
 Pillow>=10.0         # image -> JPEG conversion
-requests>=2.31       # Meta Graph API
+requests>=2.31       # Reddit RSS fetch + Meta Graph API
 
 # Public media host (S3 / Cloudflare R2)
 boto3>=1.34

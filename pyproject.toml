@@ -8,7 +8,6 @@ version = "0.1.0"
 description = "Content sourcing & repackaging tool for landscaping IG accounts"
 requires-python = ">=3.11"
 dependencies = [
-    "praw>=7.7",
     "yt-dlp>=2024.1",
     "Pillow>=10.0",
     "requests>=2.31",

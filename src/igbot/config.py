@@ -148,15 +148,7 @@ class Config:
         return next((a for a in self.accounts if a.id == account_id), None)
 
     # ----- secrets, pulled from env on demand (never stored in TOML) -----
-
-    @staticmethod
-    def reddit_credentials() -> dict[str, str]:
-        return {
-            "client_id": os.environ.get("REDDIT_CLIENT_ID", ""),
-            "client_secret": os.environ.get("REDDIT_CLIENT_SECRET", ""),
-            "username": os.environ.get("REDDIT_USERNAME", ""),
-            "password": os.environ.get("REDDIT_PASSWORD", ""),
-        }
+    # (Reddit needs no credentials — the source uses the public RSS feed.)
 
     @staticmethod
     def ig_token(account_id: str) -> str:

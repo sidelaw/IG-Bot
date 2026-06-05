@@ -106,9 +106,11 @@ create container → poll `?fields=status_code` until `FINISHED` → `media_publ
   "credit to…" alone do **not** count.
 - **Copyright** — the transform step does **not** fix copyright. Lowest-risk
   content is the landscaper's own footage (job sites, before/afters).
-- **Reddit terms** — the free API tier is **non-commercial**; a commercial
-  product needs written approval + a paid contract, and since 2025 even personal
-  apps need pre-approval. Redistribution may breach the Developer Terms.
+- **Reddit** — the source reads the **public RSS feed** (`/r/<sub>/top.rss`), so
+  **no API key or account is required**. That removes the API-tier hurdle, but
+  not the content question: redistributing others' Reddit posts commercially is
+  still not cleanly permitted. (Note: RSS carries no score, so `min_score` is
+  ignored — `top.rss` is already top-sorted.)
 - **X** — pay-per-use since Feb 2026 (~$0.005/post read). Reading is sanctioned;
   redistribution carries its own terms. Source uses API v2 recent search
   (`tweet.fields=public_metrics` for scoring, `media.fields=variants` for the

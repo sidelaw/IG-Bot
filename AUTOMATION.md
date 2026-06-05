@@ -40,10 +40,10 @@ id = "acct_two"
 
 ## 2. Add your secrets (GitHub → Settings → Secrets and variables → Actions)
 > Use the **Actions** tab of Secrets (not Codespaces) for the scheduled jobs.
+> **Reddit needs no key** — the bot reads the public RSS feed.
 
 | Secret | What |
 |---|---|
-| `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | free Reddit app key |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | your R2 keys |
 | `R2_BUCKET` / `R2_ENDPOINT_URL` / `R2_PUBLIC_BASE_URL` | your bucket |
 | `IGBOT_TOKEN_ACCT_MAIN` / `IGBOT_IGID_ACCT_MAIN` | account #1 token + id |
