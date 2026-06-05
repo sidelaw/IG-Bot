@@ -54,7 +54,7 @@ for Page-linked features.)
 
 ## Stack
 
-Python 3.11+ · `praw` (Reddit) · `yt-dlp` + system `ffmpeg` (video, audio fix) ·
+Python 3.11+ · Reddit via public RSS (`top.rss`, no key) · `yt-dlp` + system `ffmpeg` (video, audio fix) ·
 `Pillow` (image→JPEG) · `requests` (Graph API) · `sqlite3` (state/dedup/queue/
 routing/tokens) · `fastapi` (review UI, later milestone). Config in TOML
 (read with stdlib `tomllib`); secrets in env.
