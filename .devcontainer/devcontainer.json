@@ -1,0 +1,9 @@
+{
+  "name": "IG-Bot",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y ffmpeg && pip install -e '.[host,ui,dev]' && (test -f config.toml || cp config.example.toml config.toml)",
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": { "label": "IG-Bot review queue" }
+  }
+}

@@ -96,6 +96,34 @@ def test_non_reels_video_published_as_feed(tmp_path, monkeypatch):
     assert _FakePublisher.last.published["as_reel"] is False
 
 
+def test_publish_local_file(tmp_path, monkeypatch):
+    from igbot.media.downloader import MediaInfo
+
+    cfg = _config(tmp_path)
+    f = tmp_path / "clip.mp4"
+    f.write_bytes(b"fake")
+    monkeypatch.setattr(
+        "igbot.media.downloader._normalize_video",
+        lambda src, out, stem: MediaInfo(out / "n.mp4", "video", 12.0,
+                                         1080, 1920, True, True),
+    )
+    _patch(monkeypatch)   # patches build_host + InstagramPublisher + env tokens
+
+    media_id = runner.publish_local_file(cfg, f, "acct_main", caption="my lawn")
+    assert media_id == "media_777"
+    assert _FakePublisher.last.published["media_type"] == "video"
+    assert _FakePublisher.last.published["as_reel"] is True
+    assert _FakePublisher.last.published["caption"] == "my lawn"
+
+
+def test_publish_local_file_missing_file(tmp_path, monkeypatch):
+    cfg = _config(tmp_path)
+    _patch(monkeypatch)
+    from igbot.publish.instagram import PublishError
+    with pytest.raises(PublishError):
+        runner.publish_local_file(cfg, tmp_path / "nope.mp4", "acct_main")
+
+
 def test_missing_token_raises(tmp_path, monkeypatch):
     cfg = _config(tmp_path)
     cid = _seed(cfg)

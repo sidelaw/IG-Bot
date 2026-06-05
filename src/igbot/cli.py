@@ -38,6 +38,19 @@ def cmd_publish(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_post(args: argparse.Namespace) -> int:
+    """Publish your own local video/photo straight to Instagram."""
+    from .publish.runner import publish_local_file
+
+    cfg = config_mod.load(args.config)
+    media_id = publish_local_file(
+        cfg, args.file, account_id=args.account,
+        caption=args.caption, brand_overlay=args.brand,
+    )
+    print(f"\n✅ Posted to {args.account}! Instagram media id: {media_id}")
+    return 0
+
+
 def cmd_review(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -79,6 +92,14 @@ def main(argv: list[str] | None = None) -> int:
     p_pub.add_argument("--account", required=True, help="target account id")
     p_pub.add_argument("--config", default="config.toml")
     p_pub.set_defaults(func=cmd_publish)
+
+    p_post = sub.add_parser("post", help="publish your own local video/photo to Instagram")
+    p_post.add_argument("file", help="path to your video or image file")
+    p_post.add_argument("--account", default="acct_main", help="account id (default acct_main)")
+    p_post.add_argument("--caption", default="", help="the Instagram caption")
+    p_post.add_argument("--brand", action="store_true", help="burn on the brand overlay")
+    p_post.add_argument("--config", default="config.toml")
+    p_post.set_defaults(func=cmd_post)
 
     p_rev = sub.add_parser("review", help="serve the FastAPI review queue")
     p_rev.add_argument("--config", default="config.toml")
