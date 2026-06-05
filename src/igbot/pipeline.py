@@ -21,6 +21,7 @@ def run_fetch(config: Config, limit: int | None = None) -> list[int]:
     sources = {"reddit": RedditSource}
 
     # Sync configured accounts so routing FKs resolve.
+    known_accounts = {acct.id for acct in config.accounts}
     for acct in config.accounts:
         store.upsert_account(acct.id, acct.username, acct.auth_flow)
 
@@ -40,25 +41,35 @@ def run_fetch(config: Config, limit: int | None = None) -> list[int]:
                     return enqueued
                 if store.is_seen(cand.source, cand.source_post_id):
                     continue
-                store.mark_seen(cand.source, cand.source_post_id)
+
+                # Drop routing to accounts that aren't configured, so a typo'd
+                # target_account can't trip a routing FK and abort the run.
+                unknown = [a for a in cand.target_accounts if a not in known_accounts]
+                if unknown:
+                    log.warning("feed %s: unknown target account(s) %s — skipping "
+                                "those routes", feed.name, unknown)
+                cand.target_accounts = [a for a in cand.target_accounts
+                                        if a in known_accounts]
+
                 try:
                     info = download_and_normalize(
                         cand.source_url, cand.media_type,
                         config.work_dir, cand.source_post_id,
                     )
+                    cand.local_path = info.path
+                    cand.duration = info.duration
+                    cand.width = info.width
+                    cand.height = info.height
+                    cand.has_audio = info.has_audio
+                    cand.reels_eligible = info.reels_eligible
+                    cand_id = store.add_candidate(cand)
                 except Exception as exc:  # one bad post shouldn't kill the run
-                    log.warning("download failed for %s: %s",
-                                cand.source_post_id, exc)
+                    log.warning("skipping %s: %s", cand.source_post_id, exc)
                     continue
 
-                cand.local_path = info.path
-                cand.duration = info.duration
-                cand.width = info.width
-                cand.height = info.height
-                cand.has_audio = info.has_audio
-                cand.reels_eligible = info.reels_eligible
-
-                cand_id = store.add_candidate(cand)
+                # Mark seen only after a successful enqueue, so a transient
+                # download failure doesn't permanently bury a recoverable post.
+                store.mark_seen(cand.source, cand.source_post_id)
                 enqueued.append(cand_id)
                 log.info(
                     "queued #%d %s by u/%s | %s%s | audio=%s reels=%s",

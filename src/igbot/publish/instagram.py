@@ -48,11 +48,19 @@ class RateLimitError(PublishError):
 @dataclass
 class PublishLimit:
     quota_usage: int
-    quota_total: int
+    quota_total: int | None   # None = endpoint didn't report a ceiling
 
     @property
-    def remaining(self) -> int:
+    def remaining(self) -> int | None:
+        """Remaining publishes, or None when the ceiling is unknown."""
+        if self.quota_total is None:
+            return None
         return max(self.quota_total - self.quota_usage, 0)
+
+    @property
+    def exhausted(self) -> bool:
+        """True only when a known ceiling has been reached. Unknown != exhausted."""
+        return self.quota_total is not None and self.quota_usage >= self.quota_total
 
 
 class InstagramPublisher:
@@ -98,7 +106,9 @@ class InstagramPublisher:
         raw = headers.get("X-App-Usage")
         if raw:
             try:
-                peak = max(peak, *json.loads(raw).values())
+                # max(*values) would raise on an empty {} (Meta sends this at 0
+                # usage); default(...) keeps it robust.
+                peak = max([peak, *json.loads(raw).values()])
             except (ValueError, TypeError):
                 pass
         raw = headers.get("X-Business-Use-Case-Usage")
@@ -124,9 +134,13 @@ class InstagramPublisher:
             fields="config,quota_usage",
         )
         data = (body.get("data") or [{}])[0]
-        total = (data.get("config") or {}).get("quota_total", 0)
-        return PublishLimit(quota_usage=int(data.get("quota_usage", 0)),
-                            quota_total=int(total))
+        # A missing config/quota_total means "unknown ceiling" — NOT zero. Treating
+        # it as 0 would refuse every publish on accounts the endpoint underreports.
+        total = (data.get("config") or {}).get("quota_total")
+        return PublishLimit(
+            quota_usage=int(data.get("quota_usage", 0)),
+            quota_total=int(total) if total is not None else None,
+        )
 
     # ----- the 3-step dance -----
 
@@ -204,7 +218,7 @@ class InstagramPublisher:
     ) -> str:
         """Full happy path. Refuses if the queried publishing limit is exhausted."""
         limit = self.publishing_limit()
-        if limit.remaining <= 0:
+        if limit.exhausted:
             raise RateLimitError(
                 f"publishing limit reached ({limit.quota_usage}/{limit.quota_total})"
             )

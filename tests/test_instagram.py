@@ -123,6 +123,31 @@ def test_limit_is_queried_not_hardcoded():
     assert limit.quota_total == 100 and limit.remaining == 60
 
 
+def test_unknown_ceiling_does_not_block_publish():
+    # Endpoint omits config/quota_total -> unknown ceiling, must NOT refuse.
+    session = FakeSession([
+        FakeResp({"data": [{"quota_usage": 7}]}),   # no config block
+        FakeResp({"id": "c"}),
+        FakeResp({"id": "m"}),
+    ])
+    media_id = _pub(session).publish("https://cdn/x.jpg", "image")
+    assert media_id == "m"
+
+
+def test_empty_app_usage_header_is_safe(monkeypatch):
+    # Meta sends X-App-Usage: {} at zero usage; must not raise or back off.
+    slept = []
+    monkeypatch.setattr("igbot.publish.instagram.time.sleep", lambda s: slept.append(s))
+    session = FakeSession([
+        FakeResp({"data": [{"config": {"quota_total": 50}, "quota_usage": 1}]},
+                 headers={"X-App-Usage": "{}"}),
+        FakeResp({"id": "c"}),
+        FakeResp({"id": "m"}),
+    ])
+    _pub(session).publish("https://cdn/x.jpg", "image")
+    assert slept == []
+
+
 def test_usage_header_backoff(monkeypatch):
     slept = []
     monkeypatch.setattr("igbot.publish.instagram.time.sleep", lambda s: slept.append(s))

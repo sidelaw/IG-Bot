@@ -9,8 +9,31 @@ from __future__ import annotations
 
 import os
 import tomllib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from pathlib import Path
+from typing import TypeVar
+
+_T = TypeVar("_T")
+
+
+def _build(cls: type[_T], data: dict, where: str) -> _T:
+    """Construct a dataclass from a TOML table, rejecting unknown keys clearly.
+
+    A bare ``cls(**data)`` raises a cryptic stdlib TypeError on any typo'd key
+    (e.g. ``timewindow`` for ``time_window``). This names the offending key and
+    where it lives so the operator can fix config.toml.
+    """
+    allowed = {f.name for f in fields(cls)}
+    unknown = set(data) - allowed
+    if unknown:
+        raise ValueError(
+            f"unknown key(s) {sorted(unknown)} in [{where}]; "
+            f"valid keys: {sorted(allowed)}"
+        )
+    try:
+        return cls(**data)
+    except TypeError as exc:  # missing required field
+        raise ValueError(f"invalid [{where}] config: {exc}") from exc
 
 
 @dataclass
@@ -96,10 +119,11 @@ def load(path: str | Path = "config.toml") -> Config:
     paths = raw.get("paths", {})
     reddit = raw.get("reddit", {})
 
-    feeds = [Feed(**f) for f in raw.get("feeds", [])]
-    accounts = [Account(**a) for a in raw.get("accounts", [])]
-    host = HostConfig(**raw.get("host", {}))
-    instagram = InstagramConfig(**raw.get("instagram", {}))
+    feeds = [_build(Feed, f, f"feeds[{i}]") for i, f in enumerate(raw.get("feeds", []))]
+    accounts = [_build(Account, a, f"accounts[{i}]")
+                for i, a in enumerate(raw.get("accounts", []))]
+    host = _build(HostConfig, raw.get("host", {}), "host")
+    instagram = _build(InstagramConfig, raw.get("instagram", {}), "instagram")
 
     return Config(
         mode=general.get("mode", "review"),
