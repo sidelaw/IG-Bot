@@ -175,10 +175,15 @@ def load(path: str | Path = "config.toml") -> Config:
                 for i, a in enumerate(raw.get("accounts", []))]
     host = _build(HostConfig, raw.get("host", {}), "host")
     # Let host values come from the environment too (so Codespaces/CI secrets
-    # work with zero file editing). Env wins when set.
-    host.bucket = os.environ.get("IGBOT_HOST_BUCKET", host.bucket)
-    host.endpoint_url = os.environ.get("IGBOT_HOST_ENDPOINT", host.endpoint_url)
-    host.public_base_url = os.environ.get("IGBOT_HOST_PUBLIC_URL", host.public_base_url)
+    # work with zero file editing). Env wins when set. R2_* names are accepted
+    # as friendly aliases for the IGBOT_HOST_* names.
+    host.bucket = (os.environ.get("IGBOT_HOST_BUCKET")
+                   or os.environ.get("R2_BUCKET") or host.bucket)
+    host.endpoint_url = (os.environ.get("IGBOT_HOST_ENDPOINT")
+                         or os.environ.get("R2_ENDPOINT_URL") or host.endpoint_url)
+    host.public_base_url = (os.environ.get("IGBOT_HOST_PUBLIC_URL")
+                            or os.environ.get("R2_PUBLIC_BASE_URL")
+                            or host.public_base_url)
     host.region = os.environ.get("IGBOT_HOST_REGION", host.region)
     instagram = _build(InstagramConfig, raw.get("instagram", {}), "instagram")
     brand = _build(BrandConfig, raw.get("brand", {}), "brand")
