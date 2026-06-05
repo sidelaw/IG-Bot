@@ -74,6 +74,32 @@ class S3Host:
         base = self.cfg.public_base_url.rstrip("/")
         return f"{base}/{key}"
 
+    # ----- private JSON state (queue/dedup for scheduled automation) -----
+
+    def _state_key(self, name: str) -> str:
+        prefix = self.cfg.key_prefix.strip("/")
+        return f"{prefix}/state/{name}" if prefix else f"state/{name}"
+
+    def get_json(self, name: str, default=None):
+        import json
+        try:
+            obj = self._client.get_object(
+                Bucket=self.cfg.bucket, Key=self._state_key(name))
+        except self._client.exceptions.NoSuchKey:
+            return default
+        except Exception as exc:  # 404 surfaces as ClientError on some backends
+            if "NoSuchKey" in str(exc) or "404" in str(exc):
+                return default
+            raise
+        return json.loads(obj["Body"].read())
+
+    def put_json(self, name: str, obj) -> None:
+        import json
+        self._client.put_object(
+            Bucket=self.cfg.bucket, Key=self._state_key(name),
+            Body=json.dumps(obj).encode(), ContentType="application/json",
+        )
+
 
 def build_host(cfg: HostConfig) -> MediaHost:
     if cfg.provider == "s3":

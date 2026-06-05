@@ -106,6 +106,17 @@ class TikTokConfig:
 
 
 @dataclass
+class AutomationConfig:
+    # Hands-off scheduled posting (GitHub Actions). harvest grabs the top
+    # `harvest_count` posts per feed once a day; post-next publishes one queued
+    # item per run (e.g. every 2 hours). State lives in the R2 bucket so it
+    # survives between ephemeral runner invocations.
+    harvest_count: int = 10        # top N per subreddit-feed per harvest
+    brand_overlay: bool = False    # burn the [brand] overlay on every auto-post
+    caption_suffix: str = ""       # appended to each caption (e.g. your handle)
+
+
+@dataclass
 class BrandConfig:
     """Brand overlay (the 'material edit' transform for reach). Applied at
     publish time when a candidate has brand_overlay enabled."""
@@ -131,6 +142,7 @@ class Config:
     brand: BrandConfig
     x: XConfig
     tiktok: TikTokConfig
+    automation: AutomationConfig
 
     def account(self, account_id: str) -> Account | None:
         return next((a for a in self.accounts if a.id == account_id), None)
@@ -189,6 +201,7 @@ def load(path: str | Path = "config.toml") -> Config:
     brand = _build(BrandConfig, raw.get("brand", {}), "brand")
     x = _build(XConfig, raw.get("x", {}), "x")
     tiktok = _build(TikTokConfig, raw.get("tiktok", {}), "tiktok")
+    automation = _build(AutomationConfig, raw.get("automation", {}), "automation")
 
     return Config(
         mode=general.get("mode", "review"),
@@ -203,4 +216,5 @@ def load(path: str | Path = "config.toml") -> Config:
         brand=brand,
         x=x,
         tiktok=tiktok,
+        automation=automation,
     )

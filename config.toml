@@ -1,0 +1,77 @@
+# ===========================================================================
+# IG-Bot settings — EDIT THIS FILE to control what gets posted where.
+# This file is committed on purpose (none of it is secret). NEVER put tokens or
+# keys here — those go in GitHub Secrets. Edit this right in the GitHub website
+# (click the file -> pencil icon), or in your Codespace.
+# ===========================================================================
+
+[general]
+mode = "blind"            # "blind" = auto-post (for the scheduled automation)
+max_posts_per_run = 20
+
+[automation]
+harvest_count = 10        # top N posts to grab per subreddit, once a day
+brand_overlay = false     # set true to burn your [brand] text onto every post
+caption_suffix = ""       # text added to the end of every caption (e.g. "#lawncare")
+
+[paths]
+work_dir = "./work"
+db_path = "./igbot.db"
+
+[reddit]
+user_agent = "igbot/0.1 (by u/your_reddit_username)"
+
+# --- WHICH SUBREDDIT GOES TO WHICH INSTAGRAM ACCOUNT --------------------------
+# One [[feeds]] block per subreddit. Set target_accounts to the account id you
+# want it posted to. Add as many blocks as you like.
+
+[[feeds]]
+source = "reddit"
+name = "lawncare-to-main"
+subreddits = ["lawncare"]
+target_accounts = ["acct_main"]
+time_window = "day"       # "day" = today's top posts
+min_score = 100
+media_types = ["video", "image"]
+
+[[feeds]]
+source = "reddit"
+name = "gardening-to-two"
+subreddits = ["gardening"]
+target_accounts = ["acct_two"]
+time_window = "day"
+min_score = 100
+media_types = ["video", "image"]
+
+# --- YOUR INSTAGRAM ACCOUNTS --------------------------------------------------
+# One [[accounts]] block per account. The `id` must match the secret names:
+# IGBOT_TOKEN_<ID> and IGBOT_IGID_<ID> (uppercased). e.g. id "acct_main" ->
+# secrets IGBOT_TOKEN_ACCT_MAIN and IGBOT_IGID_ACCT_MAIN.
+
+[[accounts]]
+id = "acct_main"
+username = "your_first_account"
+auth_flow = "instagram_login"
+
+[[accounts]]
+id = "acct_two"
+username = "your_second_account"
+auth_flow = "instagram_login"
+
+# --- Storage + Instagram API (values come from GitHub Secrets via env) --------
+[host]
+provider = "s3"
+region = "auto"
+key_prefix = "igbot"
+# bucket / endpoint_url / public_base_url come from the R2_* secrets.
+
+[instagram]
+graph_host = "graph.instagram.com"
+api_version = "v23.0"
+
+[brand]
+text = ""                 # e.g. "@your_account" — only used if brand_overlay = true
+position = "bottom-right"
+font_size = 48
+margin = 36
+opacity = 0.85

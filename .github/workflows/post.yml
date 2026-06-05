@@ -1,0 +1,32 @@
+name: Post (every 2 hours)
+
+# Every 2 hours: publish the next queued item to its Instagram account. The
+# media is already on R2 from the harvest step, so no ffmpeg is needed here.
+on:
+  schedule:
+    - cron: "0 */2 * * *" # every 2 hours, on the hour (UTC)
+  workflow_dispatch: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[host]"
+      - run: python -m igbot post-next
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+          # One token + id per Instagram account. Add a pair for each account id
+          # you use in config.toml (uppercased): IGBOT_TOKEN_<ID> / IGBOT_IGID_<ID>.
+          IGBOT_TOKEN_ACCT_MAIN: ${{ secrets.IGBOT_TOKEN_ACCT_MAIN }}
+          IGBOT_IGID_ACCT_MAIN: ${{ secrets.IGBOT_IGID_ACCT_MAIN }}
+          IGBOT_TOKEN_ACCT_TWO: ${{ secrets.IGBOT_TOKEN_ACCT_TWO }}
+          IGBOT_IGID_ACCT_TWO: ${{ secrets.IGBOT_IGID_ACCT_TWO }}

@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from igbot.config import Config, Feed, TikTokConfig, XConfig
+from igbot.config import AutomationConfig, Config, Feed, TikTokConfig, XConfig
 
 
 class FakeResp:
@@ -72,7 +72,7 @@ def _config(monkeypatch):
     cfg = Config(
         mode="review", max_posts_per_run=20, work_dir=".", db_path="x.db",
         reddit_user_agent="ua", feeds=[], accounts=[],
-        host=None, instagram=None, brand=None, x=XConfig(), tiktok=TikTokConfig(),
+        host=None, instagram=None, brand=None, x=XConfig(), tiktok=TikTokConfig(), automation=AutomationConfig(),
     )
     return cfg
 
@@ -87,7 +87,7 @@ def test_requires_bearer_token(monkeypatch):
     monkeypatch.delenv("X_BEARER_TOKEN", raising=False)
     cfg = Config(mode="review", max_posts_per_run=20, work_dir=".", db_path="x.db",
                  reddit_user_agent="ua", feeds=[], accounts=[],
-                 host=None, instagram=None, brand=None, x=XConfig(), tiktok=TikTokConfig())
+                 host=None, instagram=None, brand=None, x=XConfig(), tiktok=TikTokConfig(), automation=AutomationConfig())
     with pytest.raises(RuntimeError):
         XSource(cfg)
 

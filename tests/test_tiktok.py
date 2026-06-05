@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from igbot.config import (
+    AutomationConfig,
     Config,
     Feed,
     TikTokConfig,
@@ -19,7 +20,7 @@ def _config(enabled: bool) -> Config:
         mode="review", max_posts_per_run=20, work_dir=".", db_path="x.db",
         reddit_user_agent="ua", feeds=[], accounts=[],
         host=None, instagram=None, brand=None, x=XConfig(),
-        tiktok=TikTokConfig(enabled=enabled),
+        tiktok=TikTokConfig(enabled=enabled), automation=AutomationConfig(),
     )
 
 
@@ -79,7 +80,7 @@ def test_pipeline_isolates_disabled_tiktok(tmp_path, monkeypatch):
         accounts=[__import__("igbot.config", fromlist=["Account"]).Account(
             id="acct_main", username="m")],
         host=None, instagram=None, brand=None, x=XConfig(),
-        tiktok=TikTokConfig(enabled=False),
+        tiktok=TikTokConfig(enabled=False), automation=AutomationConfig(),
     )
 
     class _Reddit:

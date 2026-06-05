@@ -12,6 +12,7 @@ from igbot.config import (
     Config,
     HostConfig,
     InstagramConfig,
+    AutomationConfig,
     TikTokConfig,
     XConfig,
 )
@@ -27,7 +28,7 @@ def _config(tmp_path) -> Config:
         reddit_user_agent="ua",
         feeds=[], accounts=[Account(id="acct_main", username="m")],
         host=HostConfig(bucket="b", public_base_url="https://cdn"),
-        instagram=InstagramConfig(), brand=BrandConfig(), x=XConfig(), tiktok=TikTokConfig(),
+        instagram=InstagramConfig(), brand=BrandConfig(), x=XConfig(), tiktok=TikTokConfig(), automation=AutomationConfig(),
     )
 
 
